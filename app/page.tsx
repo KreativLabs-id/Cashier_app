@@ -71,7 +71,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div>
               <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Martabak & Terang Bulan Tip Top</h1>
-              <p className="text-sm md:text-base text-orange-100">Point of Sale</p>
+              <p className="text-sm md:text-base text-orange-100">Cashier App</p>
             </div>
             <button
               onClick={() => router.push('/cart')}

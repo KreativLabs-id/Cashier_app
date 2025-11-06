@@ -15,7 +15,7 @@ export default function CartPage() {
     updateItemQty,
     removeItem,
     discountType,
-    discountValue,
+    discount,
     setDiscount,
     extraFee,
     setExtraFee,
@@ -33,7 +33,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [tempDiscountType, setTempDiscountType] = useState<'amount' | 'percentage'>(discountType);
-  const [tempDiscountValue, setTempDiscountValue] = useState(discountValue.toString());
+  const [tempDiscountValue, setTempDiscountValue] = useState(discount.toString());
   
   const subtotal = getSubtotal();
   const discountAmount = getDiscountAmount();
@@ -219,7 +219,7 @@ export default function CartPage() {
           <button
             onClick={() => {
               setTempDiscountType(discountType);
-              setTempDiscountValue(discountValue.toString());
+              setTempDiscountValue(discount.toString());
               setShowDiscountModal(true);
             }}
             className="w-full flex justify-between items-center text-left p-3 md:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
