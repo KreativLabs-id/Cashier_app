@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import type { CreateOrderPayload } from '@/types/database';
+import type { CreateOrderPayload, Database } from '@/types/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,39 +25,43 @@ export async function POST(request: NextRequest) {
     const orderNo = orderNoData as string;
     
     // Create order
+    const orderInsert: Database['Tables']['orders']['Insert'] = {
+      order_no: orderNo,
+      order_time: new Date().toISOString(),
+      subtotal: payload.subtotal,
+      discount_amount: payload.discount_amount,
+      extra_fee: payload.extra_fee,
+      total: payload.total,
+      paid_amount: payload.paid_amount,
+      change_amount: payload.change_amount,
+      pay_method: payload.pay_method,
+      notes: payload.notes || null,
+    };
+    
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        order_no: orderNo,
-        order_time: new Date().toISOString(),
-        subtotal: payload.subtotal,
-        discount_amount: payload.discount_amount,
-        extra_fee: payload.extra_fee,
-        total: payload.total,
-        paid_amount: payload.paid_amount,
-        change_amount: payload.change_amount,
-        pay_method: payload.pay_method,
-        notes: payload.notes || null,
-      })
+      .insert(orderInsert as any)
       .select()
       .single();
     
-    if (orderError) {
-      throw new Error('Failed to create order: ' + orderError.message);
+    if (orderError || !order) {
+      throw new Error('Failed to create order: ' + (orderError?.message || 'No data returned'));
     }
     
     // Create order items
     for (const item of payload.items) {
+      const itemInsert: Database['Tables']['order_items']['Insert'] = {
+        order_id: (order as any).id,
+        product_id: item.product_id,
+        variant_name: item.variant_name,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        notes: item.notes || null,
+      };
+      
       const { error: itemError } = await supabase
         .from('order_items')
-        .insert({
-          order_id: order.id,
-          product_id: item.product_id,
-          variant_name: item.variant_name,
-          qty: item.qty,
-          unit_price: item.unit_price,
-          notes: item.notes || null,
-        });
+        .insert(itemInsert as any);
       
       if (itemError) {
         throw new Error('Failed to create order item: ' + itemError.message);
@@ -66,8 +70,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      order_id: order.id,
-      order_no: order.order_no,
+      order_id: (order as any).id,
+      order_no: (order as any).order_no,
     });
   } catch (error: any) {
     console.error('POST /api/orders error:', error);

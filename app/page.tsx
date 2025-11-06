@@ -70,8 +70,8 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-2 md:mb-4 landscape:mb-2">
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl landscape:text-lg font-bold">Martabak & Terang Bulan Tip Top</h1>
-              <p className="text-sm md:text-base landscape:text-xs text-orange-100">Point of Sale</p>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Martabak & Terang Bulan Tip Top</h1>
+              <p className="text-sm md:text-base text-orange-100">Point of Sale</p>
             </div>
             <button
               onClick={() => router.push('/cart')}
