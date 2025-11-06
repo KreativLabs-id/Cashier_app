@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 import type { CreateOrderPayload, Database } from '@/types/database';
 
 export async function POST(request: NextRequest) {
@@ -15,14 +15,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate order number
-    const { data: orderNoData, error: orderNoError } = await supabase
-      .rpc('generate_order_no');
+    const orderNoResult = await sql`SELECT generate_order_no() as order_no`;
     
-    if (orderNoError) {
-      throw new Error('Failed to generate order number: ' + orderNoError.message);
+    if (!orderNoResult || orderNoResult.length === 0) {
+      throw new Error('Failed to generate order number');
     }
     
-    const orderNo = orderNoData as string;
+    const orderNo = orderNoResult[0].order_no as string;
     
     // Create order
     const orderInsert: Database['Tables']['orders']['Insert'] = {
@@ -38,15 +37,24 @@ export async function POST(request: NextRequest) {
       notes: payload.notes || null,
     };
     
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert(orderInsert as any)
-      .select()
-      .single();
+    const orderResult = await sql`
+      INSERT INTO orders (
+        order_no, order_time, subtotal, discount_amount, extra_fee, 
+        total, paid_amount, change_amount, pay_method, notes
+      ) VALUES (
+        ${orderNo}, ${orderInsert.order_time}, ${orderInsert.subtotal}, 
+        ${orderInsert.discount_amount}, ${orderInsert.extra_fee}, ${orderInsert.total},
+        ${orderInsert.paid_amount}, ${orderInsert.change_amount}, 
+        ${orderInsert.pay_method}, ${orderInsert.notes}
+      )
+      RETURNING *
+    `;
     
-    if (orderError || !order) {
-      throw new Error('Failed to create order: ' + (orderError?.message || 'No data returned'));
+    if (!orderResult || orderResult.length === 0) {
+      throw new Error('Failed to create order: No data returned');
     }
+    
+    const order = orderResult[0];
     
     // Create order items
     for (const item of payload.items) {
@@ -59,13 +67,14 @@ export async function POST(request: NextRequest) {
         notes: item.notes || null,
       };
       
-      const { error: itemError } = await supabase
-        .from('order_items')
-        .insert(itemInsert as any);
-      
-      if (itemError) {
-        throw new Error('Failed to create order item: ' + itemError.message);
-      }
+      await sql`
+        INSERT INTO order_items (
+          order_id, product_id, variant_name, qty, unit_price, notes
+        ) VALUES (
+          ${itemInsert.order_id}, ${itemInsert.product_id}, ${itemInsert.variant_name},
+          ${itemInsert.qty}, ${itemInsert.unit_price}, ${itemInsert.notes}
+        )
+      `;
     }
     
     return NextResponse.json({
@@ -87,28 +96,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     
-    let query = supabase
-      .from('orders')
-      .select('*')
-      .order('order_time', { ascending: false });
+    let orders;
     
     if (date) {
       const startDate = new Date(date);
       const endDate = new Date(date);
       endDate.setDate(endDate.getDate() + 1);
       
-      query = query
-        .gte('order_time', startDate.toISOString())
-        .lt('order_time', endDate.toISOString());
+      orders = await sql`
+        SELECT * FROM orders
+        WHERE order_time >= ${startDate.toISOString()}
+          AND order_time < ${endDate.toISOString()}
+        ORDER BY order_time DESC
+        LIMIT 100
+      `;
+    } else {
+      orders = await sql`
+        SELECT * FROM orders
+        ORDER BY order_time DESC
+        LIMIT 100
+      `;
     }
     
-    const { data, error } = await query.limit(100);
-    
-    if (error) {
-      throw error;
-    }
-    
-    return NextResponse.json({ orders: data });
+    return NextResponse.json({ orders });
   } catch (error: any) {
     console.error('GET /api/orders error:', error);
     return NextResponse.json(

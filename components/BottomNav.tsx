@@ -14,9 +14,9 @@ export default function BottomNav() {
   ];
   
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 backdrop-blur-sm bg-white/95 z-50 safe-area-bottom">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-around items-center h-16 md:h-20 px-2">
+        <div className="flex justify-around items-center h-16 md:h-18 px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -25,18 +25,18 @@ export default function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all transform ${
+                className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all ${
                   isActive
-                    ? 'text-orange-500 scale-110'
-                    : 'text-gray-500 hover:text-orange-400 active:scale-95'
+                    ? 'text-orange-500'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                <Icon className={`w-6 h-6 md:w-7 md:h-7 ${isActive ? 'drop-shadow-lg' : ''}`} />
-                <span className={`text-xs md:text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>
+                <Icon className={`w-5 h-5 md:w-6 md:h-6`} />
+                <span className={`text-[11px] md:text-xs ${isActive ? 'font-semibold' : 'font-medium'}`}>
                   {item.label}
                 </span>
                 {isActive && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-t-full"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500"></div>
                 )}
               </Link>
             );

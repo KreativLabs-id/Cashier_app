@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CartItem, Product, ProductVariant } from '@/types/database';
 
 interface CartState {
@@ -28,13 +29,15 @@ interface CartState {
   getChange: () => number;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
-  items: [],
-  discount: 0,
-  discountType: 'amount',
-  extraFee: 0,
-  payMethod: 'cash',
-  paidAmount: 0,
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      discount: 0,
+      discountType: 'amount',
+      extraFee: 0,
+      payMethod: 'cash',
+      paidAmount: 0,
   
   addItem: (product, variant, qty, notes = '') => {
     const newItem: CartItem = {
@@ -107,8 +110,12 @@ export const useCartStore = create<CartState>((set, get) => ({
   getSubtotal: () => {
     const { items } = get();
     return items.reduce((sum, item) => {
-      const price = item.variant ? item.variant.base_price : item.product.base_price;
-      return sum + (price * item.qty);
+      // Validasi data item untuk mencegah error
+      if (!item || !item.product) return sum;
+      
+      const price = item.variant?.base_price ?? item.product?.base_price ?? 0;
+      const qty = item.qty ?? 0;
+      return sum + (price * qty);
     }, 0);
   },
   
@@ -135,4 +142,19 @@ export const useCartStore = create<CartState>((set, get) => ({
     const total = get().getTotal();
     return Math.max(0, paidAmount - total);
   },
-}));
+    }),
+    {
+      name: 'cart-storage', // nama key di localStorage
+      storage: createJSONStorage(() => localStorage),
+      // Validasi dan bersihkan data corrupt saat hydration
+      onRehydrateStorage: () => (state) => {
+        if (state?.items) {
+          // Filter items yang valid saja
+          state.items = state.items.filter((item: any) => 
+            item && item.product && (item.product.base_price !== undefined)
+          );
+        }
+      },
+    }
+  )
+);

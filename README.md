@@ -1,13 +1,13 @@
-# Martabak & Terang Bulan Tip Top 🥞
+# Aplikasi Kasir Martabak & Terang Bulan 🥞
 
-Aplikasi manajemen penjualan modern untuk usaha Martabak & Terang Bulan dengan fitur lengkap untuk transaksi harian.
+Aplikasi kasir modern untuk usaha Martabak & Terang Bulan dengan fitur lengkap untuk manajemen penjualan harian.
 
 ## ✨ Fitur Utama
 
 ### 1. **POS (Point of Sale)**
 - ✅ Input pesanan cepat
-- ✅ Pilih produk (Terang Bulan Tipis/Tebal, Martabak Telur)
-- ✅ Tambah topping (Keju, Coklat, Kacang, Meses, Susu, Mix)
+- ✅ Pilih produk (Martabak Tipis/Tebal, Terang Bulan)
+- ✅ Tambah topping (Keju, Coklat, Kacang, Meses, Mix)
 - ✅ Hitung harga otomatis
 
 ### 2. **Keranjang & Checkout**
@@ -33,18 +33,20 @@ Aplikasi manajemen penjualan modern untuk usaha Martabak & Terang Bulan dengan f
 ### 5. **Progressive Web App (PWA)**
 - ✅ Install ke Home Screen
 - ✅ Mobile-first design
-- ✅ Responsive untuk HP, Tablet, dan PC
+- ✅ Responsive UI
 
 ## 🚀 Setup & Instalasi
 
 ### Prerequisites
 - Node.js 18+ 
-- npm atau pnpm
+- pnpm (recommended) atau npm
 - Akun Supabase (free tier)
 
 ### 1. Install Dependencies
 
 ```bash
+pnpm install
+# atau
 npm install
 ```
 
@@ -58,7 +60,13 @@ npm install
 
 ### 3. Environment Variables
 
-Buat file `.env.local` di root folder:
+Copy file `.env.example` ke `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` dan isi dengan credentials Supabase Anda:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -73,6 +81,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ### 4. Jalankan Development Server
 
 ```bash
+pnpm dev
+# atau
 npm run dev
 ```
 
@@ -81,6 +91,9 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 ### 5. Build untuk Production
 
 ```bash
+pnpm build
+pnpm start
+# atau
 npm run build
 npm start
 ```
@@ -166,19 +179,19 @@ aplikasi-kasir/
 ### 4. Laporan
 1. Buka tab "Laporan"
 2. Pilih tanggal
-3. Klik "Lihat Laporan"
-4. Lihat ringkuman, produk terlaris, dll
-5. Klik "Export Laporan ke CSV" untuk download
+3. Klik "Lihat"
+4. Lihat ringkasan, produk terlaris, dll
+5. Klik "Export ke CSV" untuk download
 
 ## 🎨 Kustomisasi
 
 ### Ubah Nama Toko & Info
 
-Edit file `app/receipt/[id]/page.tsx`:
+Edit file `app/receipt/[id]/page.tsx` dan `components/BottomNav.tsx`:
 
 ```tsx
-// Ganti dengan info toko Anda
-<h2>Martabak & Terang Bulan Tip Top</h2>
+// Ganti dengan nama toko Anda
+<h2>Martabak & Terang Bulan Oom</h2>
 <p>Jl. [Alamat Lengkap]</p>
 <p>Telp: 08xxxx</p>
 ```
@@ -199,7 +212,14 @@ VALUES ('top_custom', 'Nama Topping', 4000, true);
 
 ### Ubah Warna Theme
 
-Edit `tailwind.config.ts` untuk kustomisasi warna.
+Edit `tailwind.config.ts` dan ganti warna orange:
+
+```ts
+colors: {
+  // Ganti orange-500 dengan warna pilihan
+  primary: '#your-color',
+}
+```
 
 ## 🐛 Troubleshooting
 
@@ -227,5 +247,3 @@ Ada pertanyaan? Silakan buat issue di repository ini.
 MIT License - bebas digunakan untuk personal maupun komersial.
 
 ---
-
-**Dibuat dengan ❤️ untuk UMKM Indonesia**

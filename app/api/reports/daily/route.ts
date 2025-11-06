@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { sql } from '@/lib/db';
 import type { Database } from '@/types/database';
 
 export async function GET(request: NextRequest) {
@@ -19,13 +19,11 @@ export async function GET(request: NextRequest) {
     endDate.setDate(endDate.getDate() + 1);
     
     // Get orders for the day
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('*')
-      .gte('order_time', startDate.toISOString())
-      .lt('order_time', endDate.toISOString());
-    
-    if (ordersError) throw ordersError;
+    const orders = await sql`
+      SELECT * FROM orders
+      WHERE order_time >= ${startDate.toISOString()}
+        AND order_time < ${endDate.toISOString()}
+    `;
     
     if (!orders || orders.length === 0) {
       return NextResponse.json({
@@ -57,15 +55,15 @@ export async function GET(request: NextRequest) {
     
     // Get order items with products
     const orderIds = (orders as any[]).map((o: any) => o.id);
-    const { data: orderItems, error: itemsError } = await supabase
-      .from('order_items')
-      .select(`
-        *,
-        products (id, name)
-      `)
-      .in('order_id', orderIds);
-    
-    if (itemsError) throw itemsError;
+    const orderItems = await sql`
+      SELECT 
+        oi.*,
+        p.id as product_id,
+        p.name as product_name
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = ANY(${orderIds}::uuid[])
+    `;
     
     // Top products
     const productMap = new Map();
@@ -74,7 +72,7 @@ export async function GET(request: NextRequest) {
       if (!productMap.has(key)) {
         productMap.set(key, {
           product_id: key,
-          product_name: item.products.name,
+          product_name: item.product_name,
           qty: 0,
           revenue: 0,
         });
@@ -95,7 +93,7 @@ export async function GET(request: NextRequest) {
         const key = `${item.product_id}_${item.variant_name}`;
         if (!variantMap.has(key)) {
           variantMap.set(key, {
-            product_name: item.products.name,
+            product_name: item.product_name,
             variant_name: item.variant_name,
             qty: 0,
             revenue: 0,

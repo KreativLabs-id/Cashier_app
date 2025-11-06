@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useCartStore } from '@/store/cart';
 import type { ProductWithVariants } from '@/types/database';
 import ProductCard from '@/components/ProductCard';
 import BottomNav from '@/components/BottomNav';
-import { ShoppingBag, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
@@ -14,8 +11,6 @@ export default function HomePage() {
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { items } = useCartStore();
   
   useEffect(() => {
     loadData();
@@ -25,22 +20,18 @@ export default function HomePage() {
     try {
       setLoading(true);
       
-      // Load products dengan variants
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_variants (*)
-        `)
-        .eq('is_active', true)
-        .order('name');
+      // Load products dengan variants dari API
+      const response = await fetch('/api/products');
       
-      if (productsError) throw productsError;
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
       
-      setProducts(productsData || []);
+      const data = await response.json();
+      setProducts(data.products || []);
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Gagal memuat data. Pastikan koneksi Supabase sudah benar.');
+      alert('Gagal memuat data. Pastikan koneksi database sudah benar.');
     } finally {
       setLoading(false);
     }
@@ -49,8 +40,6 @@ export default function HomePage() {
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
-  const cartItemCount = items.reduce((sum: number, item: any) => sum + item.qty, 0);
   
   if (loading) {
     return (
@@ -64,38 +53,12 @@ export default function HomePage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-gray-50 pb-20 landscape:pb-16">
+    <div className="min-h-screen bg-slate-50 pb-20 landscape:pb-16">
       {/* Header */}
-      <header className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 md:p-6 landscape:p-3 sticky top-0 z-40 shadow-xl">
+      <header className="bg-white border-b border-slate-200 p-4 md:p-6 landscape:p-4 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-2 md:mb-4 landscape:mb-2">
-            <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Martabak & Terang Bulan Tip Top</h1>
-              <p className="text-sm md:text-base text-orange-100">Point of Sale</p>
-            </div>
-            <button
-              onClick={() => router.push('/cart')}
-              className="relative bg-white/20 hover:bg-white/30 rounded-full p-3 md:p-4 transition-all hover:scale-105 active:scale-95"
-            >
-              <ShoppingBag className="w-6 h-6 md:w-7 md:h-7" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[24px] h-6 px-1.5 flex items-center justify-center shadow-lg animate-pulse">
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
-          </div>
-          
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Cari produk..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 landscape:py-2 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-md text-base md:text-lg landscape:text-sm"
-            />
+          <div>
+            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">Martabak & Terang Bulan Tip Top</h1>
           </div>
         </div>
       </header>
@@ -114,20 +77,14 @@ export default function HomePage() {
         ) : (
           <>
             {/* Stats Bar - Desktop/Tablet Only */}
-            <div className="hidden md:flex items-center justify-between mb-6 bg-white rounded-xl shadow-md p-4">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <ShoppingBag className="w-5 h-5 text-orange-500" />
-                <span className="font-medium">{filteredProducts.length} Produk Tersedia</span>
+            <div className="hidden md:flex items-center justify-between mb-5 bg-white rounded-lg border border-slate-200 p-3.5">
+              <div className="flex items-center space-x-2 text-slate-600">
+                <span className="text-sm font-medium">{filteredProducts.length} Produk</span>
               </div>
-              {cartItemCount > 0 && (
-                <div className="flex items-center space-x-2 text-orange-600 font-semibold">
-                  <span>{cartItemCount} item di keranjang</span>
-                </div>
-              )}
             </div>
 
             {/* Products Grid - Responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 landscape:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-3.5 landscape:gap-3">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}

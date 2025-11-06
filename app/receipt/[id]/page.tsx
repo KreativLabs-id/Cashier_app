@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatReceiptDateTime } from '@/lib/utils';
 import { Share2, Printer, Home } from 'lucide-react';
 
@@ -24,31 +23,15 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     try {
       setLoading(true);
       
-      // Load order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', params.id)
-        .single();
+      // Load order from API
+      const response = await fetch(`/api/orders/${params.id}`);
       
-      if (orderError) throw orderError;
+      if (!response.ok) {
+        throw new Error('Failed to fetch order');
+      }
       
-      // Load order items with products and toppings
-      const { data: items, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          *,
-          products (id, name),
-          order_item_toppings (
-            *,
-            toppings (id, name)
-          )
-        `)
-        .eq('order_id', params.id);
-      
-      if (itemsError) throw itemsError;
-      
-      setOrderDetail({ order, items: items || [] });
+      const data = await response.json();
+      setOrderDetail({ order: data.order, items: data.items || [] });
     } catch (error) {
       console.error('Error loading order:', error);
       alert('Gagal memuat data order');
@@ -70,7 +53,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     let text = '🧾 *STRUK PEMBELIAN*\n';
     text += '━━━━━━━━━━━━━━━━\n';
     text += '*Martabak & Terang Bulan Tip Top*\n';
-    text += 'Jl. [Alamat Lengkap]\n';
+    text += 'Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan\n';
     text += 'Telp: 08xxxx\n';
     text += '━━━━━━━━━━━━━━━━\n\n';
     text += `Tanggal: ${formatReceiptDateTime(order.order_time)}\n`;
@@ -79,16 +62,16 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     
     // Items
     items.forEach((item: any) => {
-      const toppingTotal = item.order_item_toppings?.reduce((sum: number, t: any) => sum + t.price, 0) || 0;
-      const itemTotal = item.qty * (item.unit_price + toppingTotal);
+      const itemTotal = item.qty * item.unit_price;
       
       text += `${item.qty}x ${item.products.name}\n`;
+      if (item.variant_name) {
+        text += `   (${item.variant_name})\n`;
+      }
       text += `   @${formatCurrency(item.unit_price)}\n`;
       
-      if (item.order_item_toppings?.length > 0) {
-        item.order_item_toppings.forEach((t: any) => {
-          text += `   + ${t.toppings.name} ${formatCurrency(t.price)}\n`;
-        });
+      if (item.notes) {
+        text += `   Catatan: ${item.notes}\n`;
       }
       
       text += `   = ${formatCurrency(itemTotal)}\n\n`;
@@ -164,139 +147,145 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   const { order, items } = orderDetail;
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Screen view */}
       <div className="print:hidden">
-        <div className="max-w-3xl mx-auto bg-white min-h-screen shadow-2xl">
+        <div className="max-w-3xl mx-auto bg-white min-h-screen border-x border-slate-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 md:p-8 text-center shadow-xl">
-            <div className="text-5xl md:text-6xl mb-3">✅</div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Pembayaran Berhasil!</h1>
-            <p className="text-sm md:text-base text-green-100 font-medium">Order #{order.order_no}</p>
+          <div className="bg-white border-b border-slate-200 p-6 md:p-8 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold mb-2 text-slate-900">Pembayaran Berhasil</h1>
+            <p className="text-xs md:text-sm text-slate-500 font-medium">Order #{order.order_no}</p>
           </div>
           
           {/* Receipt Content */}
           <div className="p-5 md:p-8 lg:p-10">
-            <div className="border-b-2 border-dashed pb-5 md:pb-6 mb-5 md:mb-6">
+            <div className="border-b border-slate-200 pb-5 md:pb-6 mb-5 md:mb-6">
               <div className="text-center mb-4">
-                <h2 className="font-bold text-xl md:text-2xl text-gray-800 mb-2">🧇 Martabak & Terang Bulan Tip Top</h2>
-                <p className="text-sm md:text-base text-gray-600">Jl. [Alamat Lengkap]</p>
-                <p className="text-sm md:text-base text-gray-600">Telp: 08xxxx</p>
+                <h2 className="font-bold text-lg md:text-xl text-slate-900 mb-2">Martabak & Terang Bulan Tip Top</h2>
+                <p className="text-xs md:text-sm text-slate-500">Jl. [Alamat Lengkap]</p>
+                <p className="text-xs md:text-sm text-slate-500">Telp: 08xxxx</p>
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl text-sm md:text-base">
-                  <span className="text-gray-600 font-medium">📅 Tanggal:</span>
-                  <span className="font-bold text-gray-800">{formatReceiptDateTime(order.order_time)}</span>
+                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg text-xs md:text-sm">
+                  <span className="text-slate-600 font-medium">Tanggal</span>
+                  <span className="font-semibold text-slate-900">{formatReceiptDateTime(order.order_time)}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl text-sm md:text-base">
-                  <span className="text-gray-600 font-medium">🔢 No. Order:</span>
-                  <span className="font-bold text-gray-800">{order.order_no}</span>
+                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg text-xs md:text-sm">
+                  <span className="text-slate-600 font-medium">No. Order</span>
+                  <span className="font-semibold text-slate-900">{order.order_no}</span>
                 </div>
               </div>
             </div>
             
             {/* Items */}
-            <div className="space-y-4 md:space-y-5 mb-5 md:mb-6">
-              <h3 className="font-bold text-lg md:text-xl text-gray-800 flex items-center">
-                <span className="text-2xl mr-2">📋</span>
+            <div className="space-y-3 md:space-y-4 mb-5 md:mb-6">
+              <h3 className="font-semibold text-base md:text-lg text-slate-900">
                 Daftar Pesanan
               </h3>
               {items.map((item: any) => {
-                const toppingTotal = item.order_item_toppings?.reduce((sum: number, t: any) => sum + t.price, 0) || 0;
-                const itemTotal = item.qty * (item.unit_price + toppingTotal);
+                const itemTotal = item.qty * item.unit_price;
                 
                 return (
-                  <div key={item.id} className="p-4 md:p-5 bg-gradient-to-r from-orange-50 to-transparent rounded-xl hover:from-orange-100 transition-all">
-                    <div className="flex justify-between font-bold mb-2">
-                      <span className="text-gray-800 text-base md:text-lg">
-                        <span className="text-orange-500">{item.qty}×</span> {item.products.name}
+                  <div key={item.id} className="p-3 md:p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex justify-between font-semibold mb-2">
+                      <span className="text-slate-900 text-sm md:text-base">
+                        <span className="text-orange-600">{item.qty}×</span> {item.products.name}
                       </span>
-                      <span className="text-orange-600 text-base md:text-lg">{formatCurrency(itemTotal)}</span>
+                      <span className="text-orange-600 text-sm md:text-base">{formatCurrency(itemTotal)}</span>
                     </div>
-                    <div className="text-gray-600 ml-4 text-sm md:text-base font-medium">
+                    {item.variant_name && (
+                      <div className="text-orange-600 ml-4 text-xs md:text-sm font-medium">
+                        {item.variant_name}
+                      </div>
+                    )}
+                    <div className="text-slate-700 ml-4 text-xs md:text-sm font-medium">
                       @{formatCurrency(item.unit_price)}
                     </div>
-                    {item.order_item_toppings?.map((t: any) => (
-                      <div key={t.id} className="text-gray-600 ml-4 text-sm md:text-base flex justify-between items-center mt-1">
-                        <span>+ {t.toppings.name}</span>
-                        <span className="text-gray-700 font-medium">{formatCurrency(t.price)}</span>
+                    {item.notes && (
+                      <div className="text-slate-700 ml-4 text-xs md:text-sm mt-1 bg-amber-50 inline-block px-2 py-1 rounded">
+                        💬 {item.notes}
                       </div>
-                    ))}
+                    )}
                   </div>
                 );
               })}
             </div>
             
             {/* Summary */}
-            <div className="border-t-2 border-dashed pt-4 md:pt-5 space-y-3 md:space-y-4">
-              <div className="flex justify-between text-base md:text-lg p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-700 font-medium">Subtotal</span>
-                <span className="font-bold text-gray-800">{formatCurrency(order.subtotal)}</span>
+            <div className="border-t border-slate-200 pt-4 md:pt-5 space-y-2.5">
+              <div className="flex justify-between text-sm md:text-base p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-700 font-medium">Subtotal</span>
+                <span className="font-semibold text-slate-900">{formatCurrency(order.subtotal)}</span>
               </div>
               
               {order.discount_amount > 0 && (
-                <div className="flex justify-between text-base md:text-lg p-3 bg-red-50 rounded-xl">
-                  <span className="text-red-600 font-medium">💸 Diskon</span>
-                  <span className="font-bold text-red-600">-{formatCurrency(order.discount_amount)}</span>
+                <div className="flex justify-between text-sm md:text-base p-3 bg-red-50 rounded-lg">
+                  <span className="text-red-600 font-medium">Diskon</span>
+                  <span className="font-semibold text-red-600">-{formatCurrency(order.discount_amount)}</span>
                 </div>
               )}
               
               {order.extra_fee > 0 && (
-                <div className="flex justify-between text-base md:text-lg p-3 bg-blue-50 rounded-xl">
-                  <span className="text-blue-600 font-medium">➕ Biaya Tambahan</span>
-                  <span className="font-bold text-blue-600">{formatCurrency(order.extra_fee)}</span>
+                <div className="flex justify-between text-sm md:text-base p-3 bg-blue-50 rounded-lg">
+                  <span className="text-blue-600 font-medium">Biaya Tambahan</span>
+                  <span className="font-semibold text-blue-600">{formatCurrency(order.extra_fee)}</span>
                 </div>
               )}
               
-              <div className="flex justify-between font-bold text-xl md:text-2xl p-4 md:p-5 bg-gradient-to-r from-green-100 to-green-50 rounded-xl border-2 border-green-300 shadow-md">
-                <span className="text-gray-800">💰 TOTAL</span>
+              <div className="flex justify-between font-bold text-lg md:text-xl p-4 bg-green-50 rounded-lg border border-green-200">
+                <span className="text-slate-900">TOTAL</span>
                 <span className="text-green-600">{formatCurrency(order.total)}</span>
               </div>
             </div>
             
             {/* Payment */}
-            <div className="border-t-2 border-dashed mt-5 md:mt-6 pt-4 md:pt-5 space-y-3">
-              <div className="flex justify-between text-base md:text-lg p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-700 font-medium">💵 Bayar ({order.pay_method === 'cash' ? 'Tunai' : order.pay_method === 'qris' ? 'QRIS' : 'E-Wallet'})</span>
-                <span className="font-bold text-gray-800">{formatCurrency(order.paid_amount)}</span>
+            <div className="border-t border-slate-200 mt-5 md:mt-6 pt-4 md:pt-5 space-y-2.5">
+              <div className="flex justify-between text-sm md:text-base p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-700 font-medium">Bayar ({order.pay_method === 'cash' ? 'Tunai' : order.pay_method === 'qris' ? 'QRIS' : 'E-Wallet'})</span>
+                <span className="font-semibold text-slate-900">{formatCurrency(order.paid_amount)}</span>
               </div>
-              <div className="flex justify-between font-bold text-base md:text-lg p-3 bg-green-100 rounded-xl">
-                <span className="text-green-700">💸 Kembalian</span>
+              <div className="flex justify-between font-semibold text-sm md:text-base p-3 bg-green-50 rounded-lg">
+                <span className="text-green-700">Kembalian</span>
                 <span className="text-green-600">{formatCurrency(order.change_amount)}</span>
               </div>
             </div>
             
-            <div className="text-center mt-6 md:mt-8 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-200">
-              <p className="text-base md:text-lg font-bold text-gray-800 mb-1">🙏 Terima kasih atas kunjungan Anda!</p>
-              <p className="text-sm md:text-base text-gray-600">Selamat menikmati �</p>
+            <div className="text-center mt-6 md:mt-8 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-sm md:text-base font-semibold text-slate-900 mb-1">Terima kasih atas kunjungan Anda!</p>
+              <p className="text-xs md:text-sm text-slate-600">Selamat menikmati</p>
             </div>
           </div>
           
           {/* Action Buttons */}
-          <div className="p-5 md:p-8 space-y-3 md:space-y-4">
+          <div className="p-5 md:p-8 space-y-2.5">
             <button
               onClick={handleShare}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2"
+              className="w-full bg-green-500 hover:bg-green-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
             >
-              <Share2 className="w-5 h-5 md:w-6 md:h-6" />
-              <span>📱 Share ke WhatsApp</span>
+              <Share2 className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Share ke WhatsApp</span>
             </button>
             
             <button
               onClick={handlePrint}
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
             >
-              <Printer className="w-5 h-5 md:w-6 md:h-6" />
-              <span>🖨️ Cetak Struk</span>
+              <Printer className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Cetak Struk</span>
             </button>
             
             <button
               onClick={() => router.push('/')}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-4 md:py-5 rounded-xl md:rounded-2xl font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
             >
-              <Home className="w-5 h-5 md:w-6 md:h-6" />
-              <span>🏠 Kembali ke POS</span>
+              <Home className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Kembali ke POS</span>
             </button>
           </div>
         </div>
@@ -316,8 +305,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
         
         <div style={{ fontSize: '10px' }}>
           {items.map((item: any, index: number) => {
-            const toppingTotal = item.order_item_toppings?.reduce((sum: number, t: any) => sum + t.price, 0) || 0;
-            const itemTotal = item.qty * (item.unit_price + toppingTotal);
+            const itemTotal = item.qty * item.unit_price;
             
             return (
               <div key={item.id} style={{ marginBottom: '8px' }}>
@@ -325,14 +313,19 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
                   <span>{item.qty}x {item.products.name}</span>
                   <span>{formatCurrency(itemTotal)}</span>
                 </div>
+                {item.variant_name && (
+                  <div style={{ marginLeft: '12px', fontSize: '9px' }}>
+                    ({item.variant_name})
+                  </div>
+                )}
                 <div style={{ marginLeft: '12px', fontSize: '9px' }}>
                   @{formatCurrency(item.unit_price)}
                 </div>
-                {item.order_item_toppings?.map((t: any) => (
-                  <div key={t.id} style={{ marginLeft: '12px', fontSize: '9px' }}>
-                    + {t.toppings.name} ({formatCurrency(t.price)})
+                {item.notes && (
+                  <div style={{ marginLeft: '12px', fontSize: '9px' }}>
+                    Catatan: {item.notes}
                   </div>
-                ))}
+                )}
               </div>
             );
           })}
