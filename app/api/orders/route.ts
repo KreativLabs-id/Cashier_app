@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import type { CreateOrderPayload } from '@/types/database';
+
+export async function POST(request: NextRequest) {
+  try {
+    const payload: CreateOrderPayload = await request.json();
+    
+    // Validate payload
+    if (!payload.items || payload.items.length === 0) {
+      return NextResponse.json(
+        { message: 'Items tidak boleh kosong' },
+        { status: 400 }
+      );
+    }
+    
+    // Calculate totals
+    const subtotal = payload.items.reduce((sum, item) => {
+      const toppingTotal = item.toppings.reduce((t, topping) => t + topping.price, 0);
+      return sum + (item.qty * (item.unit_price + toppingTotal));
+    }, 0);
+    
+    const total = Math.max(0, subtotal - payload.discount_amount + payload.extra_fee);
+    const change = Math.max(0, payload.paid_amount - total);
+    
+    // Generate order number
+    const { data: orderNoData, error: orderNoError } = await supabase
+      .rpc('generate_order_no');
+    
+    if (orderNoError) {
+      throw new Error('Failed to generate order number: ' + orderNoError.message);
+    }
+    
+    const orderNo = orderNoData as string;
+    
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        order_no: orderNo,
+        order_time: payload.order_time,
+        subtotal,
+        discount_amount: payload.discount_amount,
+        extra_fee: payload.extra_fee,
+        total,
+        paid_amount: payload.paid_amount,
+        change_amount: change,
+        pay_method: payload.pay_method,
+        notes: payload.notes || null,
+      })
+      .select()
+      .single();
+    
+    if (orderError) {
+      throw new Error('Failed to create order: ' + orderError.message);
+    }
+    
+    // Create order items
+    for (const item of payload.items) {
+      const { data: orderItem, error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: order.id,
+          product_id: item.product_id,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          notes: item.notes || null,
+        })
+        .select()
+        .single();
+      
+      if (itemError) {
+        throw new Error('Failed to create order item: ' + itemError.message);
+      }
+      
+      // Create toppings for this item
+      if (item.toppings.length > 0) {
+        const toppingsData = item.toppings.map(t => ({
+          order_item_id: orderItem.id,
+          topping_id: t.topping_id,
+          price: t.price,
+        }));
+        
+        const { error: toppingsError } = await supabase
+          .from('order_item_toppings')
+          .insert(toppingsData);
+        
+        if (toppingsError) {
+          throw new Error('Failed to create toppings: ' + toppingsError.message);
+        }
+      }
+    }
+    
+    return NextResponse.json({
+      success: true,
+      order_id: order.id,
+      order_no: order.order_no,
+    });
+  } catch (error: any) {
+    console.error('POST /api/orders error:', error);
+    return NextResponse.json(
+      { message: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+    
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .order('order_time', { ascending: false });
+    
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      query = query
+        .gte('order_time', startDate.toISOString())
+        .lt('order_time', endDate.toISOString());
+    }
+    
+    const { data, error } = await query.limit(100);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return NextResponse.json({ orders: data });
+  } catch (error: any) {
+    console.error('GET /api/orders error:', error);
+    return NextResponse.json(
+      { message: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
