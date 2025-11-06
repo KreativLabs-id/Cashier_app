@@ -64,14 +64,14 @@ export default function HomePage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-gray-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-gray-50 pb-20 landscape:pb-16">
       {/* Header */}
-      <header className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 md:p-6 sticky top-0 z-40 shadow-xl">
+      <header className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 md:p-6 landscape:p-3 sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-3 md:mb-4">
+          <div className="flex items-center justify-between mb-2 md:mb-4 landscape:mb-2">
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Martabak & Terang Bulan Tip Top</h1>
-              <p className="text-sm md:text-base text-orange-100">Point of Sale</p>
+              <h1 className="text-xl md:text-2xl lg:text-3xl landscape:text-lg font-bold">Martabak & Terang Bulan Tip Top</h1>
+              <p className="text-sm md:text-base landscape:text-xs text-orange-100">Point of Sale</p>
             </div>
             <button
               onClick={() => router.push('/cart')}
@@ -94,14 +94,14 @@ export default function HomePage() {
               placeholder="Cari produk..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-md text-base md:text-lg"
+              className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 landscape:py-2 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-md text-base md:text-lg landscape:text-sm"
             />
           </div>
         </div>
       </header>
       
       {/* Products Grid */}
-      <main className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
+      <main className="max-w-7xl mx-auto px-3 md:px-6 py-3 md:py-6 landscape:py-2">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 md:py-24">
             <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 max-w-md mx-auto">
@@ -127,7 +127,7 @@ export default function HomePage() {
             </div>
 
             {/* Products Grid - Responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 md:gap-4 lg:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 landscape:gap-3">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
