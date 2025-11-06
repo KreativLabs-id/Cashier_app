@@ -62,21 +62,20 @@ export default function CartPage() {
       
       // Prepare order payload
       const payload: CreateOrderPayload = {
-        order_time: new Date().toISOString(),
-        items: items.map(item => ({
-          product_id: item.product.id,
-          qty: item.qty,
-          unit_price: item.product.base_price,
-          notes: item.notes,
-          toppings: item.toppings.map(t => ({
-            topping_id: t.id,
-            price: t.price,
-          })),
-        })),
+        subtotal,
         discount_amount: discountAmount,
         extra_fee: extraFee,
-        pay_method: payMethod,
+        total,
         paid_amount: paidAmount,
+        change_amount: change,
+        pay_method: payMethod,
+        items: items.map((item: any) => ({
+          product_id: item.product.id,
+          variant_name: item.variant?.variant_name || null,
+          qty: item.qty,
+          unit_price: item.variant ? item.variant.base_price : item.product.base_price,
+          notes: item.notes || undefined,
+        })),
       };
       
       // Call API
@@ -155,24 +154,28 @@ export default function CartPage() {
       
       {/* Cart Items */}
       <main className="max-w-4xl mx-auto px-3 md:px-6 py-4 md:py-6 space-y-3 md:space-y-4">
-        {items.map((item) => {
-          const itemTotal = item.qty * (item.product.base_price + item.toppings.reduce((s, t) => s + t.price, 0));
+        {items.map((item: any) => {
+          const itemPrice = item.variant ? item.variant.base_price : item.product.base_price;
+          const itemTotal = item.qty * itemPrice;
           
           return (
             <div key={item.id} className="bg-white rounded-xl md:rounded-2xl p-4 md:p-5 shadow-md hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <h3 className="font-bold text-base md:text-lg">{item.product.name}</h3>
-                  <p className="text-sm md:text-base text-gray-600 font-medium">
-                    {formatCurrency(item.product.base_price)}
+                  {item.variant && (
+                    <p className="text-sm md:text-base text-orange-600 font-semibold mt-1">
+                      {item.variant.variant_name}
+                    </p>
+                  )}
+                  <p className="text-sm md:text-base text-gray-600 font-medium mt-1">
+                    {formatCurrency(itemPrice)}
                   </p>
-                  {item.toppings.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {item.toppings.map((t) => (
-                        <div key={t.id} className="text-xs md:text-sm text-gray-600 bg-orange-50 inline-block px-2 py-1 rounded mr-1">
-                          + {t.name} ({formatCurrency(t.price)})
-                        </div>
-                      ))}
+                  {item.notes && (
+                    <div className="mt-2">
+                      <div className="text-xs md:text-sm text-gray-600 bg-yellow-50 inline-block px-2 py-1 rounded">
+                        💬 {item.notes}
+                      </div>
                     </div>
                   )}
                 </div>

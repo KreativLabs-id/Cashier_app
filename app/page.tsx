@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/store/cart';
-import type { Product, Topping } from '@/types/database';
+import type { ProductWithVariants } from '@/types/database';
 import ProductCard from '@/components/ProductCard';
 import BottomNav from '@/components/BottomNav';
 import { ShoppingBag, Search } from 'lucide-react';
@@ -11,12 +11,11 @@ import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [toppings, setToppings] = useState<Topping[]>([]);
+  const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { items, addItem } = useCartStore();
+  const { items } = useCartStore();
   
   useEffect(() => {
     loadData();
@@ -26,26 +25,19 @@ export default function HomePage() {
     try {
       setLoading(true);
       
-      // Load products
+      // Load products dengan variants
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          product_variants (*)
+        `)
         .eq('is_active', true)
         .order('name');
       
       if (productsError) throw productsError;
       
-      // Load toppings
-      const { data: toppingsData, error: toppingsError } = await supabase
-        .from('toppings')
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: false });
-      
-      if (toppingsError) throw toppingsError;
-      
       setProducts(productsData || []);
-      setToppings(toppingsData || []);
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Gagal memuat data. Pastikan koneksi Supabase sudah benar.');
@@ -54,15 +46,11 @@ export default function HomePage() {
     }
   };
   
-  const handleAddToCart = (product: Product, selectedToppings: Topping[], qty: number) => {
-    addItem(product, selectedToppings, qty);
-  };
-  
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  const cartItemCount = items.reduce((sum, item) => sum + item.qty, 0);
+  const cartItemCount = items.reduce((sum: number, item: any) => sum + item.qty, 0);
   
   if (loading) {
     return (
@@ -82,8 +70,8 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Kasir Martabak</h1>
-              <p className="text-sm md:text-base text-orange-100">Terang Bulan Oom</p>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Martabak & Terang Bulan Tip Top</h1>
+              <p className="text-sm md:text-base text-orange-100">Point of Sale</p>
             </div>
             <button
               onClick={() => router.push('/cart')}
@@ -139,13 +127,11 @@ export default function HomePage() {
             </div>
 
             {/* Products Grid - Responsive */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 md:gap-4 lg:gap-5">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  toppings={toppings}
-                  onAddToCart={handleAddToCart}
                 />
               ))}
             </div>

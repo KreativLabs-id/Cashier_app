@@ -1,7 +1,7 @@
 {
-  "name": "Kasir Martabak & Terang Bulan",
-  "short_name": "Kasir Martabak",
-  "description": "Aplikasi kasir untuk Martabak & Terang Bulan Oom",
+  "name": "Martabak & Terang Bulan Tip Top",
+  "short_name": "Tip Top POS",
+  "description": "Aplikasi manajemen penjualan untuk Martabak & Terang Bulan Tip Top",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

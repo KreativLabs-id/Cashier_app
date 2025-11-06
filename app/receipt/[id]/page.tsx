@@ -69,7 +69,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     // Generate receipt text for WhatsApp
     let text = '🧾 *STRUK PEMBELIAN*\n';
     text += '━━━━━━━━━━━━━━━━\n';
-    text += '*Martabak & Terang Bulan Oom*\n';
+    text += '*Martabak & Terang Bulan Tip Top*\n';
     text += 'Jl. [Alamat Lengkap]\n';
     text += 'Telp: 08xxxx\n';
     text += '━━━━━━━━━━━━━━━━\n\n';
@@ -179,7 +179,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
           <div className="p-5 md:p-8 lg:p-10">
             <div className="border-b-2 border-dashed pb-5 md:pb-6 mb-5 md:mb-6">
               <div className="text-center mb-4">
-                <h2 className="font-bold text-xl md:text-2xl text-gray-800 mb-2">🧇 Martabak & Terang Bulan Oom</h2>
+                <h2 className="font-bold text-xl md:text-2xl text-gray-800 mb-2">🧇 Martabak & Terang Bulan Tip Top</h2>
                 <p className="text-sm md:text-base text-gray-600">Jl. [Alamat Lengkap]</p>
                 <p className="text-sm md:text-base text-gray-600">Telp: 08xxxx</p>
               </div>
@@ -305,7 +305,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
       {/* Print view */}
       <div className="hidden print:block receipt-print">
         <div className="text-center mb-2" style={{ fontSize: '10px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Martabak & Terang Bulan Oom</div>
+          <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Martabak & Terang Bulan Tip Top</div>
           <div>Jl. [Alamat Lengkap]</div>
           <div>Telp: 08xxxx</div>
           <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>

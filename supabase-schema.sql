@@ -1,6 +1,5 @@
 -- ================================================
--- SCHEMA SQL UNTUK APLIKASI KASIR MARTABAK
--- Import ke Supabase SQL Editor
+-- SCHEMA SQL UNTUK APLIKASI KASIR MARTABAK TIP TOP
 -- ================================================
 
 -- 1. PRODUCTS TABLE
@@ -12,12 +11,12 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. TOPPINGS TABLE
-CREATE TABLE IF NOT EXISTS toppings (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  price INTEGER NOT NULL,
-  is_active BOOLEAN DEFAULT true,
+-- 2. VARIANTS TABLE (karena tiap varian punya harga berbeda)
+CREATE TABLE IF NOT EXISTS product_variants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  variant_name TEXT NOT NULL,
+  base_price INTEGER NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,22 +41,14 @@ CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   product_id TEXT NOT NULL REFERENCES products(id),
+  variant_name TEXT,
   qty INTEGER NOT NULL DEFAULT 1,
   unit_price INTEGER NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. ORDER_ITEM_TOPPINGS TABLE
-CREATE TABLE IF NOT EXISTS order_item_toppings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
-  topping_id TEXT NOT NULL REFERENCES toppings(id),
-  price INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 6. SHIFTS TABLE (opsional, untuk shift pagi/malam)
+-- 5. SHIFTS TABLE (opsional)
 CREATE TABLE IF NOT EXISTS shifts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shift_date DATE NOT NULL,
@@ -70,55 +61,103 @@ CREATE TABLE IF NOT EXISTS shifts (
 );
 
 -- ================================================
--- INDEXES untuk performance
+-- INDEXES
 -- ================================================
 CREATE INDEX IF NOT EXISTS idx_orders_order_time ON orders(order_time DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_toppings_order_item_id ON order_item_toppings(order_item_id);
-CREATE INDEX IF NOT EXISTS idx_order_item_toppings_topping_id ON order_item_toppings(topping_id);
 
 -- ================================================
--- SEED DATA - Menu Martabak & Terang Bulan
+-- SEED DATA - MENU MARTABAK TIP TOP
 -- ================================================
 
--- Products
+-- PRODUCTS
 INSERT INTO products (id, name, base_price, is_active) VALUES
-  ('prd_terang_tipis', 'Terang Bulan Tipis', 25000, true),
-  ('prd_terang_tebal', 'Terang Bulan Tebal', 30000, true),
-  ('prd_martabak_telur', 'Martabak Telur', 28000, true)
+  ('prd_terang_bulan', 'Terang Bulan Tip Top', 15000, true),
+  ('prd_martabak_telur', 'Martabak Telor', 20000, true)
 ON CONFLICT (id) DO NOTHING;
 
--- Toppings
-INSERT INTO toppings (id, name, price, is_active) VALUES
-  ('top_keju', 'Keju', 6000, true),
-  ('top_coklat', 'Coklat', 5000, true),
-  ('top_kacang', 'Kacang', 3000, true),
-  ('top_meses', 'Meses', 3000, true),
-  ('top_susu', 'Susu', 2000, true),
-  ('top_mix', 'Mix (Keju+Coklat)', 9000, true)
-ON CONFLICT (id) DO NOTHING;
+-- VARIANTS UNTUK TERANG BULAN TIP TOP
+INSERT INTO product_variants (product_id, variant_name, base_price) VALUES
+  ('prd_terang_bulan', 'Kombinasi Original', 35000),
+  ('prd_terang_bulan', 'Kombinasi Brownis', 40000),
+  ('prd_terang_bulan', 'Kombinasi Mocca', 40000),
+  ('prd_terang_bulan', 'Kombinasi Pandan', 40000),
 
--- ================================================
--- ROW LEVEL SECURITY (RLS) - DISABLE untuk kasir internal
--- Kalau mau enable RLS, uncomment di bawah
--- ================================================
+  ('prd_terang_bulan', 'Keju Kacang Original', 30000),
+  ('prd_terang_bulan', 'Keju Kacang Brownis', 35000),
+  ('prd_terang_bulan', 'Keju Kacang Mocca', 35000),
+  ('prd_terang_bulan', 'Keju Kacang Pandan', 35000),
 
--- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE toppings ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE order_item_toppings ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
+  ('prd_terang_bulan', 'Keju Coklat Original', 30000),
+  ('prd_terang_bulan', 'Keju Coklat Brownis', 35000),
+  ('prd_terang_bulan', 'Keju Coklat Mocca', 35000),
+  ('prd_terang_bulan', 'Keju Coklat Pandan', 35000),
 
--- Policy: Allow semua aksi (karena ini internal kasir)
--- CREATE POLICY "Allow all for authenticated users" ON products FOR ALL USING (true);
--- CREATE POLICY "Allow all for authenticated users" ON toppings FOR ALL USING (true);
--- CREATE POLICY "Allow all for authenticated users" ON orders FOR ALL USING (true);
--- CREATE POLICY "Allow all for authenticated users" ON order_items FOR ALL USING (true);
--- CREATE POLICY "Allow all for authenticated users" ON order_item_toppings FOR ALL USING (true);
--- CREATE POLICY "Allow all for authenticated users" ON shifts FOR ALL USING (true);
+  ('prd_terang_bulan', 'Double Keju Original', 35000),
+  ('prd_terang_bulan', 'Double Keju Brownis', 40000),
+  ('prd_terang_bulan', 'Double Keju Mocca', 40000),
+  ('prd_terang_bulan', 'Double Keju Pandan', 40000),
+
+  ('prd_terang_bulan', 'Double Kacang Original', 23000),
+  ('prd_terang_bulan', 'Double Kacang Brownis', 28000),
+  ('prd_terang_bulan', 'Double Kacang Mocca', 28000),
+  ('prd_terang_bulan', 'Double Kacang Pandan', 28000),
+
+  ('prd_terang_bulan', 'Double Coklat Original', 23000),
+  ('prd_terang_bulan', 'Double Coklat Brownis', 28000),
+  ('prd_terang_bulan', 'Double Coklat Mocca', 28000),
+  ('prd_terang_bulan', 'Double Coklat Pandan', 28000),
+
+  ('prd_terang_bulan', 'Choco Crunchy Original', 25000),
+  ('prd_terang_bulan', 'Choco Crunchy Brownis', 30000),
+  ('prd_terang_bulan', 'Choco Crunchy Mocca', 30000),
+  ('prd_terang_bulan', 'Choco Crunchy Pandan', 30000),
+
+  ('prd_terang_bulan', 'Choco Crunchy Kacang Original', 28000),
+  ('prd_terang_bulan', 'Choco Crunchy Kacang Brownis', 33000),
+  ('prd_terang_bulan', 'Choco Crunchy Kacang Mocca', 33000),
+  ('prd_terang_bulan', 'Choco Crunchy Kacang Pandan', 33000),
+
+  ('prd_terang_bulan', 'Choco Crunchy Keju Original', 33000),
+  ('prd_terang_bulan', 'Choco Crunchy Keju Brownis', 38000),
+  ('prd_terang_bulan', 'Choco Crunchy Keju Mocca', 38000),
+  ('prd_terang_bulan', 'Choco Crunchy Keju Pandan', 38000),
+
+  ('prd_terang_bulan', 'Keju Original', 28000),
+  ('prd_terang_bulan', 'Keju Brownis', 33000),
+  ('prd_terang_bulan', 'Keju Mocca', 33000),
+  ('prd_terang_bulan', 'Keju Pandan', 33000),
+
+  ('prd_terang_bulan', 'Kacang Coklat Original', 25000),
+  ('prd_terang_bulan', 'Kacang Coklat Brownis', 30000),
+  ('prd_terang_bulan', 'Kacang Coklat Mocca', 30000),
+  ('prd_terang_bulan', 'Kacang Coklat Pandan', 30000),
+
+  ('prd_terang_bulan', 'Coklat Original', 20000),
+  ('prd_terang_bulan', 'Coklat Brownis', 25000),
+  ('prd_terang_bulan', 'Coklat Mocca', 25000),
+  ('prd_terang_bulan', 'Coklat Pandan', 25000),
+
+  ('prd_terang_bulan', 'Kacang Original', 20000),
+  ('prd_terang_bulan', 'Kacang Brownis', 25000),
+  ('prd_terang_bulan', 'Kacang Mocca', 25000),
+  ('prd_terang_bulan', 'Kacang Pandan', 25000),
+
+  ('prd_terang_bulan', 'Kosongan Original', 15000),
+  ('prd_terang_bulan', 'Kosongan Brownis', 20000),
+  ('prd_terang_bulan', 'Kosongan Mocca', 20000),
+  ('prd_terang_bulan', 'Kosongan Pandan', 20000)
+ON CONFLICT DO NOTHING;
+
+-- VARIANTS UNTUK MARTABAK TELOR
+INSERT INTO product_variants (product_id, variant_name, base_price) VALUES
+  ('prd_martabak_telur', 'Super', 50000),
+  ('prd_martabak_telur', 'Istimewa', 40000),
+  ('prd_martabak_telur', 'Spesial', 30000),
+  ('prd_martabak_telur', 'Biasa', 20000)
+ON CONFLICT DO NOTHING;
 
 -- ================================================
 -- FUNCTION: Generate Order Number (YYYYMMDD-####)
@@ -147,10 +186,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ================================================
--- VIEWS untuk Laporan
+-- VIEW: DAILY SUMMARY
 -- ================================================
-
--- View: Daily Summary
 CREATE OR REPLACE VIEW daily_summary AS
 SELECT
   DATE(order_time AT TIME ZONE 'Asia/Jakarta') AS date,
@@ -166,10 +203,4 @@ ORDER BY date DESC;
 
 -- ================================================
 -- DONE! 🎉
--- ================================================
--- Langkah selanjutnya:
--- 1. Copy semua SQL ini ke Supabase SQL Editor
--- 2. Run/Execute
--- 3. Cek table sudah terbuat & terisi seed data
--- 4. Copy SUPABASE_URL & SUPABASE_ANON_KEY ke .env.local
 -- ================================================

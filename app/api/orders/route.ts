@@ -14,15 +14,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Calculate totals
-    const subtotal = payload.items.reduce((sum, item) => {
-      const toppingTotal = item.toppings.reduce((t, topping) => t + topping.price, 0);
-      return sum + (item.qty * (item.unit_price + toppingTotal));
-    }, 0);
-    
-    const total = Math.max(0, subtotal - payload.discount_amount + payload.extra_fee);
-    const change = Math.max(0, payload.paid_amount - total);
-    
     // Generate order number
     const { data: orderNoData, error: orderNoError } = await supabase
       .rpc('generate_order_no');
@@ -38,13 +29,13 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .insert({
         order_no: orderNo,
-        order_time: payload.order_time,
-        subtotal,
+        order_time: new Date().toISOString(),
+        subtotal: payload.subtotal,
         discount_amount: payload.discount_amount,
         extra_fee: payload.extra_fee,
-        total,
+        total: payload.total,
         paid_amount: payload.paid_amount,
-        change_amount: change,
+        change_amount: payload.change_amount,
         pay_method: payload.pay_method,
         notes: payload.notes || null,
       })
@@ -57,37 +48,19 @@ export async function POST(request: NextRequest) {
     
     // Create order items
     for (const item of payload.items) {
-      const { data: orderItem, error: itemError } = await supabase
+      const { error: itemError } = await supabase
         .from('order_items')
         .insert({
           order_id: order.id,
           product_id: item.product_id,
+          variant_name: item.variant_name,
           qty: item.qty,
           unit_price: item.unit_price,
           notes: item.notes || null,
-        })
-        .select()
-        .single();
+        });
       
       if (itemError) {
         throw new Error('Failed to create order item: ' + itemError.message);
-      }
-      
-      // Create toppings for this item
-      if (item.toppings.length > 0) {
-        const toppingsData = item.toppings.map(t => ({
-          order_item_id: orderItem.id,
-          topping_id: t.topping_id,
-          price: t.price,
-        }));
-        
-        const { error: toppingsError } = await supabase
-          .from('order_item_toppings')
-          .insert(toppingsData);
-        
-        if (toppingsError) {
-          throw new Error('Failed to create toppings: ' + toppingsError.message);
-        }
       }
     }
     

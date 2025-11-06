@@ -1,158 +1,138 @@
 import { create } from 'zustand';
-import type { CartItem, Product, Topping } from '@/types/database';
+import type { CartItem, Product, ProductVariant } from '@/types/database';
 
-type DiscountType = 'amount' | 'percentage';
-
-interface CartStore {
-  // Cart items
+interface CartState {
   items: CartItem[];
-  
-  // Discount & Extra Fee
-  discountType: DiscountType;
-  discountValue: number;
+  discount: number;
+  discountType: 'amount' | 'percentage';
   extraFee: number;
-  
-  // Payment
   payMethod: 'cash' | 'qris' | 'ewallet';
   paidAmount: number;
   
   // Actions
-  addItem: (product: Product, toppings: Topping[], qty?: number, notes?: string) => void;
+  addItem: (product: Product, variant: ProductVariant | null, qty: number, notes?: string) => void;
   removeItem: (itemId: string) => void;
   updateItemQty: (itemId: string, qty: number) => void;
+  updateItemNotes: (itemId: string, notes: string) => void;
   clearCart: () => void;
   
-  // Discount & Fee
-  setDiscount: (type: DiscountType, value: number) => void;
+  setDiscount: (type: 'amount' | 'percentage', value: number) => void;
   setExtraFee: (fee: number) => void;
-  
-  // Payment
   setPayMethod: (method: 'cash' | 'qris' | 'ewallet') => void;
   setPaidAmount: (amount: number) => void;
   
-  // Computed values
+  // Computed
   getSubtotal: () => number;
   getDiscountAmount: () => number;
   getTotal: () => number;
   getChange: () => number;
 }
 
-export const useCartStore = create<CartStore>((set, get) => ({
-  // Initial state
+export const useCartStore = create<CartState>((set, get) => ({
   items: [],
+  discount: 0,
   discountType: 'amount',
-  discountValue: 0,
   extraFee: 0,
   payMethod: 'cash',
   paidAmount: 0,
   
-  // Add item to cart
-  addItem: (product, toppings, qty = 1, notes) => {
+  addItem: (product, variant, qty, notes = '') => {
     const newItem: CartItem = {
-      id: `cart-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       product,
+      variant,
       qty,
-      toppings: toppings.map(t => ({
-        id: t.id,
-        name: t.name,
-        price: t.price,
-      })),
       notes,
     };
     
-    set(state => ({
+    set((state) => ({
       items: [...state.items, newItem],
     }));
   },
   
-  // Remove item from cart
   removeItem: (itemId) => {
-    set(state => ({
-      items: state.items.filter(item => item.id !== itemId),
+    set((state) => ({
+      items: state.items.filter((item) => item.id !== itemId),
     }));
   },
   
-  // Update item quantity
   updateItemQty: (itemId, qty) => {
     if (qty <= 0) {
       get().removeItem(itemId);
       return;
     }
     
-    set(state => ({
-      items: state.items.map(item =>
+    set((state) => ({
+      items: state.items.map((item) =>
         item.id === itemId ? { ...item, qty } : item
       ),
     }));
   },
   
-  // Clear cart
+  updateItemNotes: (itemId, notes) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === itemId ? { ...item, notes } : item
+      ),
+    }));
+  },
+  
   clearCart: () => {
     set({
       items: [],
+      discount: 0,
       discountType: 'amount',
-      discountValue: 0,
       extraFee: 0,
       payMethod: 'cash',
       paidAmount: 0,
     });
   },
   
-  // Set discount
   setDiscount: (type, value) => {
-    set({ discountType: type, discountValue: Math.max(0, value) });
+    set({ discountType: type, discount: value });
   },
   
-  // Set extra fee
   setExtraFee: (fee) => {
-    set({ extraFee: Math.max(0, fee) });
+    set({ extraFee: fee });
   },
   
-  // Set payment method
   setPayMethod: (method) => {
     set({ payMethod: method });
   },
   
-  // Set paid amount
   setPaidAmount: (amount) => {
-    set({ paidAmount: Math.max(0, amount) });
+    set({ paidAmount: amount });
   },
   
-  // Get subtotal (sum of all items with toppings)
   getSubtotal: () => {
     const { items } = get();
-    return items.reduce((total, item) => {
-      const toppingTotal = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
-      return total + (item.qty * (item.product.base_price + toppingTotal));
+    return items.reduce((sum, item) => {
+      const price = item.variant ? item.variant.base_price : item.product.base_price;
+      return sum + (price * item.qty);
     }, 0);
   },
   
-  // Get discount amount
   getDiscountAmount: () => {
-    const { discountType, discountValue } = get();
+    const { discount, discountType } = get();
     const subtotal = get().getSubtotal();
     
     if (discountType === 'percentage') {
-      return Math.round(subtotal * (discountValue / 100));
+      return Math.round((subtotal * discount) / 100);
     }
-    
-    return Math.min(discountValue, subtotal); // Tidak boleh lebih dari subtotal
+    return discount;
   },
   
-  // Get total
   getTotal: () => {
     const subtotal = get().getSubtotal();
-    const discount = get().getDiscountAmount();
+    const discountAmount = get().getDiscountAmount();
     const { extraFee } = get();
     
-    return Math.max(0, subtotal - discount + extraFee);
+    return subtotal - discountAmount + extraFee;
   },
   
-  // Get change
   getChange: () => {
     const { paidAmount } = get();
     const total = get().getTotal();
-    
     return Math.max(0, paidAmount - total);
   },
 }));
