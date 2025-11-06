@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
-import { Calendar, Download, TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
+import { generateDailyReportPDF, downloadPDF, openPDFInNewTab } from '@/lib/pdfGenerator';
+import AdminBottomNav from '@/components/AdminBottomNav';
+import { Calendar, Download, TrendingUp, ShoppingBag, DollarSign, LogOut, FileText } from 'lucide-react';
 
 interface DailyReport {
   date: string;
@@ -23,12 +25,52 @@ interface DailyReport {
   }>;
 }
 
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 export default function ReportsPage() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split('T')[0]
   );
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (!response.ok) {
+        router.push('/login');
+        return;
+      }
+      const data = await response.json();
+      if (data.user.role !== 'admin') {
+        router.push('/');
+        return;
+      }
+      setUser(data.user);
+    } catch (error) {
+      router.push('/login');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
   
   const loadReport = async () => {
     try {
@@ -49,6 +91,30 @@ export default function ReportsPage() {
     }
   };
   
+  const exportToPDF = () => {
+    if (!report) return;
+    
+    try {
+      const pdf = generateDailyReportPDF(report);
+      downloadPDF(pdf, `Laporan-${report.date}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Gagal membuat PDF');
+    }
+  };
+
+  const previewPDF = () => {
+    if (!report) return;
+    
+    try {
+      const pdf = generateDailyReportPDF(report);
+      openPDFInNewTab(pdf);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Gagal membuat PDF');
+    }
+  };
+
   const exportToCSV = () => {
     if (!report) return;
     
@@ -84,7 +150,21 @@ export default function ReportsPage() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 p-4 md:p-6 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-lg md:text-xl lg:text-2xl font-bold mb-3 md:mb-4 text-slate-900">Laporan Harian</h1>
+          <div className="flex justify-between items-center mb-3 md:mb-4">
+            <div>
+              <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">Laporan Harian</h1>
+              {user && (
+                <p className="text-xs md:text-sm text-slate-600">Admin: {user.name}</p>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 text-xs md:text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              <LogOut size={16} />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </div>
           
           {/* Date Picker */}
           <div className="flex flex-col sm:flex-row gap-2 md:gap-2.5">
@@ -123,7 +203,7 @@ export default function ReportsPage() {
           <div className="text-center py-16 md:py-24">
             <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 max-w-md mx-auto">
               <Calendar className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mx-auto mb-6" />
-              <p className="text-slate-600 text-sm md:text-base">Pilih tanggal dan klik <span className="font-semibold text-orange-600">"Lihat Laporan"</span> untuk menampilkan data</p>
+              <p className="text-slate-600 text-sm md:text-base">Pilih tanggal dan klik <span className="font-semibold text-orange-600">&quot;Lihat Laporan&quot;</span> untuk menampilkan data</p>
             </div>
           </div>
         ) : (
@@ -247,19 +327,43 @@ export default function ReportsPage() {
               )}
             </div>
             
-            {/* Export Button */}
-            <button
-              onClick={exportToCSV}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
-            >
-              <Download className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Export Laporan ke CSV</span>
-            </button>
+            {/* Export Buttons */}
+            <div className="space-y-3">
+              {/* PDF Export - Primary */}
+              <button
+                onClick={exportToPDF}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2 shadow-lg"
+              >
+                <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                <span>Download Laporan PDF</span>
+              </button>
+
+              {/* Preview & CSV - Secondary */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={previewPDF}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 md:py-3 text-sm md:text-base bg-white border-2 border-orange-500 text-orange-600 rounded-lg hover:bg-orange-50 transition-all active:scale-95 font-medium"
+                >
+                  <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="hidden sm:inline">Preview PDF</span>
+                  <span className="sm:hidden">Preview</span>
+                </button>
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 md:py-3 text-sm md:text-base bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all active:scale-95 font-medium"
+                >
+                  <Download className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="hidden sm:inline">Export CSV</span>
+                  <span className="sm:hidden">CSV</span>
+                </button>
+              </div>
+            </div>
           </>
         )}
       </main>
-      
-      <BottomNav />
+
+      {/* Admin Bottom Navigation */}
+      <AdminBottomNav />
     </div>
   );
 }

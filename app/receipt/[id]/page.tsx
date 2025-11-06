@@ -16,8 +16,26 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    checkAuth();
     loadOrderDetail();
   }, [params.id]);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (!response.ok) {
+        router.push('/login');
+        return;
+      }
+      const data = await response.json();
+      if (data.user.role !== 'kasir') {
+        router.push('/admin');
+        return;
+      }
+    } catch (error) {
+      router.push('/login');
+    }
+  };
   
   const loadOrderDetail = async () => {
     try {
@@ -54,7 +72,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     text += '━━━━━━━━━━━━━━━━\n';
     text += '*Martabak & Terang Bulan Tip Top*\n';
     text += 'Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan\n';
-    text += 'Telp: 08xxxx\n';
+    text += 'Telp: 082319777005\n';
     text += '━━━━━━━━━━━━━━━━\n\n';
     text += `Tanggal: ${formatReceiptDateTime(order.order_time)}\n`;
     text += `No: ${order.order_no}\n`;
@@ -97,7 +115,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     text += `Bayar (${payMethodLabel}): ${formatCurrency(order.paid_amount)}\n`;
     text += `Kembalian: ${formatCurrency(order.change_amount)}\n`;
     text += '━━━━━━━━━━━━━━━━\n';
-    text += 'Terima kasih! 🙏';
+    text += 'Terima kasih! Selamat Menikmati 🙏';
     
     // Try Web Share API first
     if (navigator.share) {

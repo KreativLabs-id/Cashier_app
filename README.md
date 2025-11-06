@@ -24,18 +24,17 @@ Aplikasi kasir modern untuk usaha Martabak & Terang Bulan dengan fitur lengkap u
 
 ### 4. **Laporan Harian**
 - ✅ Total omzet & jumlah order
-- ✅ Rata-rata nilai order
-- ✅ Breakdown metode pembayaran
-- ✅ Produk terlaris
-- ✅ Topping terlaris
-- ✅ Export CSV
 
 ### 5. **Progressive Web App (PWA)**
-- ✅ Install ke Home Screen
-- ✅ Mobile-first design
-- ✅ Responsive UI
+- Install ke Home Screen (Android & iOS)
+- Offline support dengan Service Worker
+- Fast loading dengan caching strategy
+- App shortcuts (Kasir & Laporan)
+- Native app-like experience
+- Logo Tip Top sebagai icon aplikasi
+- Mobile-first responsive design
 
-## 🚀 Setup & Instalasi
+## Setup & Instalasi
 
 ### Prerequisites
 - Node.js 18+ 

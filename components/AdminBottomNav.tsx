@@ -1,16 +1,16 @@
 'use client';
 
-import { Home, ShoppingCart, History } from 'lucide-react';
+import { LayoutDashboard, FileText, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function BottomNav() {
+export default function AdminBottomNav() {
   const pathname = usePathname();
   
   const navItems = [
-    { href: '/', icon: Home, label: 'POS' },
-    { href: '/cart', icon: ShoppingCart, label: 'Cart' },
-    { href: '/riwayat', icon: History, label: 'Riwayat' },
+    { href: '/admin', icon: LayoutDashboard, label: 'Menu' },
+    { href: '/admin/users', icon: Users, label: 'Users' },
+    { href: '/reports', icon: FileText, label: 'Laporan' },
   ];
   
   return (
