@@ -12,7 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     default: "Martabak & Terang Bulan Tip Top",
-    template: "%s | Tip Top POS"
+    template: "%s | Tip Top Kasir"
   },
   description: "Aplikasi manajemen penjualan untuk Martabak & Terang Bulan Tip Top",
   manifest: "/manifest.json",

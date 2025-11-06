@@ -23,6 +23,12 @@ interface DailyReport {
     qty: number;
     revenue: number;
   }>;
+  top_variants: Array<{
+    product_name: string;
+    variant_name: string;
+    qty: number;
+    revenue: number;
+  }>;
 }
 
 interface User {
@@ -296,14 +302,10 @@ export default function ReportsPage() {
               <h2 className="font-semibold text-base md:text-lg mb-4 text-slate-900">
                 Produk Terlaris
               </h2>
-              {report.top_products.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 text-sm md:text-base">Belum ada data produk</p>
-                </div>
-              ) : (
+              {report.top_variants && report.top_variants.length > 0 ? (
                 <div className="space-y-3">
-                  {report.top_products.map((product, index) => (
-                    <div key={product.product_id} className="flex items-center justify-between p-3 md:p-3.5 bg-slate-50 rounded-lg border border-slate-200 hover:border-orange-500 transition-all">
+                  {report.top_variants.map((item, index) => (
+                    <div key={`${item.product_name}-${item.variant_name}`} className="flex items-center justify-between p-3 md:p-3.5 bg-slate-50 rounded-lg border border-slate-200 hover:border-orange-500 transition-all">
                       <div className="flex items-center space-x-3 flex-1">
                         <div className={`w-8 h-8 md:w-9 md:h-9 ${
                           index === 0 ? 'bg-yellow-500' :
@@ -314,15 +316,20 @@ export default function ReportsPage() {
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-xs md:text-sm text-slate-900 truncate">{product.product_name}</div>
-                          <div className="text-[11px] md:text-xs text-slate-600 font-medium">{product.qty} pcs</div>
+                          <div className="font-semibold text-xs md:text-sm text-slate-900 truncate">{item.product_name}</div>
+                          <div className="text-[11px] md:text-xs text-orange-600 font-medium">{item.variant_name}</div>
+                          <div className="text-[11px] md:text-xs text-slate-600 font-medium">{item.qty} pcs</div>
                         </div>
                       </div>
                       <div className="font-bold text-orange-600 text-sm md:text-base ml-2">
-                        {formatCurrency(product.revenue)}
+                        {formatCurrency(item.revenue)}
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400 text-sm md:text-base">Belum ada data produk</p>
                 </div>
               )}
             </div>

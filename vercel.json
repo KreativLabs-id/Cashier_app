@@ -4,16 +4,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["sin1"],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret"
-  },
-  "build": {
-    "env": {
-      "DATABASE_URL": "@database_url",
-      "JWT_SECRET": "@jwt_secret"
-    }
-  },
   "headers": [
     {
       "source": "/sw.js",

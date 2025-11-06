@@ -185,8 +185,8 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
             <div className="border-b border-slate-200 pb-5 md:pb-6 mb-5 md:mb-6">
               <div className="text-center mb-4">
                 <h2 className="font-bold text-lg md:text-xl text-slate-900 mb-2">Martabak & Terang Bulan Tip Top</h2>
-                <p className="text-xs md:text-sm text-slate-500">Jl. [Alamat Lengkap]</p>
-                <p className="text-xs md:text-sm text-slate-500">Telp: 08xxxx</p>
+                <p className="text-xs md:text-sm text-slate-500">Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan</p>
+                <p className="text-xs md:text-sm text-slate-500">Telp: 082319777005</p>
               </div>
               
               <div className="space-y-2">
@@ -313,8 +313,8 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
       <div className="hidden print:block receipt-print">
         <div className="text-center mb-2" style={{ fontSize: '10px' }}>
           <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Martabak & Terang Bulan Tip Top</div>
-          <div>Jl. [Alamat Lengkap]</div>
-          <div>Telp: 08xxxx</div>
+          <div>Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan</div>
+          <div>Telp: 082319777005</div>
           <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
           <div>{formatReceiptDateTime(order.order_time)}</div>
           <div>No: {order.order_no}</div>

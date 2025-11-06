@@ -119,18 +119,25 @@ export function generateDailyReportPDF(report: DailyReport) {
 
   yPos = (doc as any).lastAutoTable.finalY + 10;
 
-  // Top Products
+  // Top Products (with variants)
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Produk Terlaris', 14, yPos);
   yPos += 5;
 
-  const productsData = report.top_products.map((product, index) => [
-    `${index + 1}`,
-    product.product_name,
-    `${product.qty} pcs`,
-    formatCurrency(product.revenue),
-  ]);
+  const productsData = (report as any).top_variants && (report as any).top_variants.length > 0
+    ? (report as any).top_variants.map((item: any, index: number) => [
+        `${index + 1}`,
+        `${item.product_name}\n${item.variant_name}`,
+        `${item.qty} pcs`,
+        formatCurrency(item.revenue),
+      ])
+    : report.top_products.map((product, index) => [
+        `${index + 1}`,
+        product.product_name,
+        `${product.qty} pcs`,
+        formatCurrency(product.revenue),
+      ]);
 
   autoTable(doc, {
     startY: yPos,
@@ -142,15 +149,16 @@ export function generateDailyReportPDF(report: DailyReport) {
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 10,
+      halign: 'center',
     },
     bodyStyles: {
       fontSize: 9,
     },
     columnStyles: {
       0: { cellWidth: 15, halign: 'center' },
-      1: { cellWidth: 80 },
-      2: { cellWidth: 40, halign: 'center' },
-      3: { cellWidth: 'auto', halign: 'right' },
+      1: { cellWidth: 85 },
+      2: { cellWidth: 35, halign: 'center' },
+      3: { cellWidth: 47, halign: 'right' },
     },
     margin: { left: 14, right: 14 },
   });
