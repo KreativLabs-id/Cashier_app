@@ -1,98 +1,143 @@
-# Aplikasi Kasir Martabak & Terang Bulan 🥞
+# 🥞 Aplikasi Kasir Martabak & Terang Bulan Tip Top
 
-Aplikasi kasir modern untuk usaha Martabak & Terang Bulan dengan fitur lengkap untuk manajemen penjualan harian.
+Aplikasi kasir modern full-stack dengan fitur lengkap untuk manajemen penjualan harian. Dibangun dengan Next.js 14, TypeScript, dan PostgreSQL (Neon.tech).
 
-## ✨ Fitur Utama
+## ✨ Fitur Lengkap
 
-### 1. **POS (Point of Sale)**
-- ✅ Input pesanan cepat
-- ✅ Pilih produk (Martabak Tipis/Tebal, Terang Bulan)
-- ✅ Tambah topping (Keju, Coklat, Kacang, Meses, Mix)
-- ✅ Hitung harga otomatis
+### 🛒 POS (Point of Sale)
+- ✅ Interface intuitif untuk input pesanan cepat
+- ✅ Pilih produk dengan 56+ varian Terang Bulan
+- ✅ Variant selector dengan search functionality
+- ✅ Tambah catatan per item
+- ✅ Real-time cart management dengan Zustand
+- ✅ Hitung harga otomatis per varian
 
-### 2. **Keranjang & Checkout**
-- ✅ Edit jumlah item
-- ✅ Diskon (nominal / persentase)
-- ✅ Biaya tambahan
-- ✅ Pilih metode bayar (Tunai / QRIS / E-Wallet)
+### 💳 Keranjang & Checkout
+- ✅ Edit jumlah item (increment/decrement)
+- ✅ Hapus item dari cart
+- ✅ Diskon fleksibel (nominal / persentase)
+- ✅ Biaya tambahan (delivery, packaging, dll)
+- ✅ Multiple payment methods (Tunai / QRIS / E-Wallet)
 - ✅ Hitung kembalian otomatis
+- ✅ Validasi pembayaran sebelum checkout
 
-### 3. **Struk Digital**
-- ✅ Tampilan struk lengkap
-- ✅ Share ke WhatsApp
-- ✅ Cetak struk thermal (58mm)
+### 🧾 Struk Digital
+- ✅ Tampilan struk lengkap dengan detail order
+- ✅ Share ke WhatsApp (Web Share API)
+- ✅ Cetak struk thermal (58mm) - optimized for thermal printers
+- ✅ Format struk profesional dengan logo & info toko
+- ✅ Responsive design untuk mobile & desktop
 
-### 4. **Laporan Harian**
-- ✅ Total omzet & jumlah order
+### 📊 Laporan Harian
+- ✅ Dashboard laporan dengan visualisasi data
+- ✅ Total omzet & jumlah order per hari
+- ✅ Breakdown pembayaran (Cash, QRIS, E-Wallet)
+- ✅ Top 5 produk terlaris dengan varian
+- ✅ Rata-rata nilai order
+- ✅ Export laporan ke PDF (jsPDF)
+- ✅ Export laporan ke CSV
+- ✅ Preview PDF sebelum download
 
-### 5. **Progressive Web App (PWA)**
-- Install ke Home Screen (Android & iOS)
-- Offline support dengan Service Worker
-- Fast loading dengan caching strategy
-- App shortcuts (Kasir & Laporan)
-- Native app-like experience
-- Logo Tip Top sebagai icon aplikasi
-- Mobile-first responsive design
+### 👤 Authentication & Authorization
+- ✅ Secure login dengan JWT & bcrypt
+- ✅ Role-based access control (Admin & Kasir)
+- ✅ Session management dengan cookies
+- ✅ Protected routes dengan middleware
+- ✅ Auto-redirect berdasarkan role
+- ✅ Logout functionality
 
-## Setup & Instalasi
+### 🔧 Admin Panel
+- ✅ Manajemen menu (CRUD products & variants)
+- ✅ Tambah/edit/hapus produk
+- ✅ Kelola varian dengan harga berbeda
+- ✅ Soft delete untuk data integrity
+- ✅ User-friendly modal forms
+- ✅ Real-time update tanpa reload
+
+### 📱 Progressive Web App (PWA)
+- ✅ Install ke Home Screen (Android & iOS)
+- ✅ Offline support dengan Service Worker
+- ✅ Fast loading dengan caching strategy
+- ✅ App shortcuts (POS & Laporan)
+- ✅ Native app-like experience
+- ✅ Custom icons & splash screens
+- ✅ Mobile-first responsive design
+- ✅ Install prompt component
+
+### 📜 Riwayat Transaksi
+- ✅ List transaksi hari ini
+- ✅ Detail per transaksi
+- ✅ Klik untuk lihat struk
+- ✅ Summary total penjualan
+- ✅ Filter by date (coming soon)
+
+## 🚀 Quick Start
+
+**Lihat panduan lengkap di [SETUP_GUIDE.md](./SETUP_GUIDE.md)**
 
 ### Prerequisites
 - Node.js 18+ 
-- pnpm (recommended) atau npm
-- Akun Supabase (free tier)
+- npm atau pnpm (recommended)
+- Akun Neon.tech (free tier) untuk PostgreSQL database
 
 ### 1. Install Dependencies
 
 ```bash
-pnpm install
-# atau
 npm install
+# atau
+pnpm install
 ```
 
-### 2. Setup Supabase
+### 2. Setup Database
 
-1. Buat project baru di [Supabase](https://supabase.com)
-2. Buka SQL Editor di Supabase Dashboard
-3. Copy & paste semua isi file `supabase-schema.sql`
-4. Jalankan SQL query
-5. Verifikasi table sudah terbuat dan terisi seed data
+1. Buat project di [Neon.tech](https://neon.tech)
+2. Copy connection string
+3. Buka SQL Editor di Neon dashboard
+4. Copy & paste semua isi file `complete-schema.sql`
+5. Jalankan SQL query
+6. Generate password hash:
+   ```bash
+   node scripts/generate-password-hash.js
+   ```
+7. Update users table dengan hash yang benar
 
 ### 3. Environment Variables
 
-Copy file `.env.example` ke `.env.local`:
+Copy file `.env.example` ke `.env`:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Edit `.env.local` dan isi dengan credentials Supabase Anda:
+Edit `.env` dan isi dengan credentials:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+DATABASE_URL=postgresql://user:pass@host.neon.tech/neondb?sslmode=require
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+SESSION_EXPIRY=86400
 ```
-
-**Cara mendapatkan credentials:**
-1. Buka Supabase Project Settings → API
-2. Copy "Project URL" ke `NEXT_PUBLIC_SUPABASE_URL`
-3. Copy "anon public" key ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ### 4. Jalankan Development Server
 
 ```bash
-pnpm dev
-# atau
 npm run dev
 ```
 
 Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-### 5. Build untuk Production
+### 5. Login
+
+**Admin:**
+- Email: `admin@tiptop.com`
+- Password: `admin123`
+
+**Kasir:**
+- Email: `kasir@tiptop.com`
+- Password: `kasir123`
+
+### 6. Build untuk Production
 
 ```bash
-pnpm build
-pnpm start
-# atau
 npm run build
 npm start
 ```
@@ -101,58 +146,131 @@ npm start
 
 ### Deploy ke Vercel (Recommended)
 
-1. Push code ke GitHub
+1. Push code ke GitHub:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/username/cashier-app.git
+   git push -u origin main
+   ```
+
 2. Import repository ke [Vercel](https://vercel.com)
-3. Tambahkan Environment Variables di Vercel Dashboard
+3. Tambahkan Environment Variables:
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `SESSION_EXPIRY`
 4. Deploy!
 
-### Install PWA di HP Android
+### Install PWA di Mobile
 
-1. Buka aplikasi di browser (Chrome/Edge)
+**Android (Chrome):**
+1. Buka aplikasi di browser Chrome
 2. Klik menu (⋮) → "Add to Home screen"
 3. Aplikasi akan muncul di home screen seperti app native
+
+**iOS (Safari):**
+1. Buka aplikasi di Safari
+2. Tap tombol Share → "Add to Home Screen"
+3. Icon akan muncul di home screen
 
 ## 📂 Struktur Project
 
 ```
-aplikasi-kasir/
-├── app/
-│   ├── api/
-│   │   ├── orders/route.ts          # API create & get orders
-│   │   └── reports/daily/route.ts   # API laporan harian
-│   ├── cart/page.tsx                # Halaman keranjang & checkout
-│   ├── receipt/[id]/page.tsx        # Halaman struk
-│   ├── reports/page.tsx             # Halaman laporan
-│   ├── layout.tsx                   # Root layout
-│   ├── page.tsx                     # Halaman utama POS
-│   └── globals.css                  # Global styles
-├── components/
-│   ├── BottomNav.tsx                # Bottom navigation
-│   ├── Button.tsx                   # Button component
-│   └── ProductCard.tsx              # Card produk dengan topping
-├── lib/
-│   ├── supabase.ts                  # Supabase client
-│   └── utils.ts                     # Helper functions
-├── store/
-│   └── cart.ts                      # Zustand cart store
-├── types/
-│   └── database.ts                  # TypeScript types
-├── public/
-│   └── manifest.json                # PWA manifest
-├── supabase-schema.sql              # Database schema
-├── package.json
-├── tsconfig.json
-└── tailwind.config.ts
+cashier-app/
+├── app/                                    # Next.js 14 App Router
+│   ├── api/                               # API Routes
+│   │   ├── auth/                          # Authentication endpoints
+│   │   │   ├── login/route.ts            # Login API
+│   │   │   ├── logout/route.ts           # Logout API
+│   │   │   └── me/route.ts               # Get current user
+│   │   ├── orders/                        # Orders endpoints
+│   │   │   ├── [id]/route.ts             # Get order by ID
+│   │   │   ├── route.ts                  # Create & list orders
+│   │   │   └── today/route.ts            # Today's orders
+│   │   ├── products/                      # Products endpoints
+│   │   │   ├── [id]/route.ts             # Update/delete product
+│   │   │   └── route.ts                  # List & create products
+│   │   ├── reports/                       # Reports endpoints
+│   │   │   └── daily/route.ts            # Daily report
+│   │   └── users/                         # Users endpoints
+│   │       ├── [id]/password/route.ts    # Change password
+│   │       └── route.ts                  # List users
+│   ├── admin/                             # Admin pages
+│   │   ├── users/page.tsx                # User management
+│   │   └── page.tsx                      # Admin dashboard
+│   ├── cart/page.tsx                      # Shopping cart & checkout
+│   ├── login/page.tsx                     # Login page
+│   ├── receipt/[id]/page.tsx              # Receipt page
+│   ├── reports/page.tsx                   # Reports page
+│   ├── riwayat/page.tsx                   # Transaction history
+│   ├── layout.tsx                         # Root layout
+│   ├── page.tsx                           # POS main page
+│   └── globals.css                        # Global styles
+├── components/                            # React components
+│   ├── AdminBottomNav.tsx                # Admin navigation
+│   ├── BottomNav.tsx                     # Kasir navigation
+│   ├── Button.tsx                        # Button component
+│   ├── InstallPrompt.tsx                 # PWA install prompt
+│   └── ProductCard.tsx                   # Product card with variants
+├── lib/                                   # Utility libraries
+│   ├── auth.ts                           # Authentication helpers
+│   ├── db.ts                             # Database client (Neon)
+│   ├── pdfGenerator.ts                   # PDF generation
+│   └── utils.ts                          # Helper functions
+├── store/                                 # State management
+│   └── cart.ts                           # Zustand cart store
+├── types/                                 # TypeScript types
+│   └── database.ts                       # Database types
+├── public/                                # Static assets
+│   ├── manifest.json                     # PWA manifest
+│   ├── sw.js                             # Service worker
+│   └── *.png                             # Icons & images
+├── scripts/                               # Utility scripts
+│   ├── generate-icons.js                 # Generate PWA icons
+│   └── generate-password-hash.js         # Generate bcrypt hashes
+├── complete-schema.sql                    # Complete DB schema
+├── neon-schema.sql                        # Neon-specific schema
+├── middleware.ts                          # Next.js middleware (auth)
+├── SETUP_GUIDE.md                         # Detailed setup guide
+├── README.md                              # This file
+├── package.json                           # Dependencies
+├── tsconfig.json                          # TypeScript config
+├── tailwind.config.ts                     # Tailwind config
+└── next.config.mjs                        # Next.js config
 ```
 
 ## 🛠 Tech Stack
 
-- **Frontend:** Next.js 14 (App Router), React, TypeScript
+### Frontend
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript
+- **UI Library:** React 18
 - **Styling:** Tailwind CSS
-- **State Management:** Zustand
-- **Database:** Supabase (PostgreSQL)
+- **State Management:** Zustand (cart management)
 - **Icons:** Lucide React
-- **Deployment:** Vercel
+- **Date Handling:** date-fns, date-fns-tz
+
+### Backend
+- **Runtime:** Node.js
+- **API:** Next.js API Routes
+- **Database:** PostgreSQL (Neon.tech serverless)
+- **ORM:** @neondatabase/serverless (SQL client)
+- **Authentication:** JWT (jose) + bcryptjs
+- **Session:** Cookie-based with httpOnly
+
+### Features & Tools
+- **PDF Generation:** jsPDF + jspdf-autotable
+- **PWA:** next-pwa, Service Worker
+- **Image Optimization:** Sharp
+- **Deployment:** Vercel (recommended)
+
+### Development
+- **Package Manager:** npm / pnpm
+- **Linting:** ESLint
+- **Code Style:** Prettier (via ESLint)
+- **Git Hooks:** (optional) Husky
 
 ## 📝 Cara Penggunaan
 
