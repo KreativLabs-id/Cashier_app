@@ -283,8 +283,8 @@ function ProductModal({
   };
 
   const addVariant = () => {
-    // Tambah varian baru di akhir array (bawah)
-    const newVariants = [...formData.variants, { id: '', variant_name: '', base_price: 0 }];
+    // Tambah varian baru di awal array (atas)
+    const newVariants = [{ id: '', variant_name: '', base_price: 0 }, ...formData.variants];
     setFormData({
       ...formData,
       variants: newVariants,
