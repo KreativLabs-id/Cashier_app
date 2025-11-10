@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency, formatReceiptDateTime } from '@/lib/utils';
-import { Share2, Printer, Home } from 'lucide-react';
+import { getBluetoothPrinter } from '@/lib/bluetoothPrinter';
+import { Share2, Printer, Home, Bluetooth } from 'lucide-react';
 
 interface OrderDetail {
   order: any;
@@ -14,6 +15,8 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [printing, setPrinting] = useState(false);
+  const [bluetoothAvailable, setBluetoothAvailable] = useState(false);
   
   const checkAuth = useCallback(async () => {
     try {
@@ -56,93 +59,154 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     checkAuth();
     loadOrderDetail();
+    
+    // Check if Bluetooth is available
+    if (typeof navigator !== 'undefined' && 'bluetooth' in navigator) {
+      setBluetoothAvailable(true);
+    }
   }, [checkAuth, loadOrderDetail]);
 
+  /**
+   * Print directly to Bluetooth thermal printer
+   */
+  const handleBluetoothPrint = async () => {
+    if (!orderDetail) return;
+    
+    setPrinting(true);
+    
+    try {
+      const printer = getBluetoothPrinter();
+      const success = await printer.printReceipt(orderDetail.order, orderDetail.items);
+      
+      if (success) {
+        alert('✅ Struk berhasil dicetak!');
+      } else {
+        throw new Error('Gagal mencetak');
+      }
+    } catch (error: any) {
+      console.error('Bluetooth print error:', error);
+      
+      if (error.message?.includes('User cancelled')) {
+        alert('❌ Pencetakan dibatalkan');
+      } else {
+        alert('❌ Gagal mencetak ke printer Bluetooth.\n\nPastikan:\n- Bluetooth aktif\n- Printer sudah pairing\n- Printer dalam jangkauan');
+      }
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  /**
+   * Print via browser print dialog (fallback)
+   */
   const handlePrint = () => {
     const printContent = document.querySelector('.receipt-print-container');
     if (!printContent) return;
 
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const contentWindow = iframe.contentWindow;
-    if (!contentWindow) {
-      document.body.removeChild(iframe);
-      alert('Gagal membuka jendela cetak.');
+    // Open new window for printing
+    const printWindow = window.open('', '_blank', 'width=280,height=600');
+    if (!printWindow) {
+      alert('Gagal membuka jendela cetak. Pastikan popup tidak diblokir.');
       return;
     }
 
-    const doc = contentWindow.document;
-    doc.open();
-    doc.write(`
+    printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <title>Struk Pembelian</title>
           <meta charset="UTF-8">
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
           <style>
             @page {
-              size: 65mm auto;
+              size: 65mm 297mm;
               margin: 0;
+            }
+            
+            @media print {
+              html, body {
+                width: 80mm;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+              }
+              
+              body {
+                padding: 0 7.5mm;
+              }
             }
             
             * {
               margin: 0;
               padding: 0;
               box-sizing: border-box;
-              font-family: 'monospace', sans-serif;
+              font-family: 'Courier New', Courier, monospace;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
-              color: #000;
+              color: #000 !important;
             }
             
-            html, body {
-              width: 65mm;
-              margin: 0;
-              padding: 0;
+            html {
+              background: #f0f0f0;
             }
             
             body {
-              padding: 5mm 3mm;
-              font-size: 10pt;
-              line-height: 1.5;
+              width: 65mm;
+              margin: 10mm auto;
+              padding: 3mm;
+              font-size: 9pt;
+              line-height: 1.3;
+              background: white;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            
+            @media print {
+              html {
+                background: white;
+              }
+              
+              body {
+                box-shadow: none;
+                margin: 0 auto;
+              }
+            }
+            
+            .receipt-print-container,
+            .receipt-print {
+              width: 100%;
+              max-width: 100%;
             }
             
             .text-center { text-align: center; }
             .font-bold { font-weight: bold; }
-            .mb-1 { margin-bottom: 4px; }
-            .mb-2 { margin-bottom: 8px; }
-            .mt-2 { margin-top: 8px; }
+            .text-xs { font-size: 7.5pt; }
+            .text-base { font-size: 9pt; }
+            .mb-1 { margin-bottom: 2.5px; }
+            .mb-0\.5 { margin-bottom: 1.5px; }
+            .mt-2 { margin-top: 5px; }
+            .pt-1 { padding-top: 2.5px; }
+            .leading-snug { line-height: 1.15; }
             
             .border-t { 
               border-top: 1px dashed #000;
+              margin: 2.5px 0;
+              padding-top: 2.5px;
             }
             
-            .flex { display: flex; }
-            .justify-between { justify-content: space-between; }
-            .w-full { width: 100%; }
-            .receipt-print { 
+            .border-solid {
+              border-top: 1px solid #000;
+            }
+            
+            .flex { 
+              display: flex;
               width: 100%;
             }
-            .item-row > div:last-child {
-              text-align: right;
+            .justify-between { 
+              justify-content: space-between;
             }
-            .summary-row > div:first-child {
-              text-align: right;
-              padding-right: 1em;
-            }
-            .summary-row > div:last-child {
-              text-align: right;
-            }
-            .total-row {
-              font-weight: bold;
-            }
+            
+            .ml-2 { margin-left: 4mm; }
+            .pt-0\.5 { padding-top: 1.5px; }
+            .mt-0\.5 { margin-top: 1.5px; }
           </style>
         </head>
         <body>
@@ -150,14 +214,17 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
         </body>
       </html>
     `);
-    doc.close();
-
-    iframe.onload = () => {
+    
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
       setTimeout(() => {
-        contentWindow.focus();
-        contentWindow.print();
+        printWindow.focus();
+        printWindow.print();
+        // Close window after printing
         setTimeout(() => {
-          document.body.removeChild(iframe);
+          printWindow.close();
         }, 100);
       }, 250);
     };
@@ -391,12 +458,25 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
               <span>Share ke WhatsApp</span>
             </button>
             
+            {/* Bluetooth Print Button */}
+            {bluetoothAvailable && (
+              <button
+                onClick={handleBluetoothPrint}
+                disabled={printing}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Bluetooth className="w-4 h-4 md:w-5 md:h-5" />
+                <span>{printing ? 'Mencetak...' : 'Cetak via Bluetooth'}</span>
+              </button>
+            )}
+            
+            {/* Browser Print Button (Fallback) */}
             <button
               onClick={handlePrint}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
+              className="w-full bg-slate-500 hover:bg-slate-600 text-white py-3.5 md:py-4 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 flex items-center justify-center space-x-2"
             >
               <Printer className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Cetak Struk</span>
+              <span>Cetak Browser {bluetoothAvailable ? '(Alternatif)' : ''}</span>
             </button>
             
             <button
@@ -410,8 +490,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Print view */}
-      <div className="hidden receipt-print-container">
+      <div className="receipt-print-container hidden">
         <div className="receipt-print leading-snug">
           <div className="text-center mb-1">
             <div className="font-bold text-base mb-0.5">Martabak & Terang Bulan Tip Top</div>
