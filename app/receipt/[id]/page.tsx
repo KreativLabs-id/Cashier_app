@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency, formatReceiptDateTime } from '@/lib/utils';
 import { Share2, Printer, Home } from 'lucide-react';
@@ -15,12 +15,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    checkAuth();
-    loadOrderDetail();
-  }, [params.id]);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/me');
       if (!response.ok) {
@@ -35,9 +30,9 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     } catch (error) {
       router.push('/login');
     }
-  };
+  }, [router]);
   
-  const loadOrderDetail = async () => {
+  const loadOrderDetail = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -56,10 +51,116 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [params.id]);
+
+  useEffect(() => {
+    checkAuth();
+    loadOrderDetail();
+  }, [checkAuth, loadOrderDetail]);
+
   const handlePrint = () => {
-    window.print();
+    const printContent = document.querySelector('.receipt-print-container');
+    if (!printContent) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const contentWindow = iframe.contentWindow;
+    if (!contentWindow) {
+      document.body.removeChild(iframe);
+      alert('Gagal membuka jendela cetak.');
+      return;
+    }
+
+    const doc = contentWindow.document;
+    doc.open();
+    doc.write(`
+      <html>
+        <head>
+          <title>Struk Pembelian</title>
+          <meta charset="UTF-8">
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: 65mm auto;
+              margin: 0;
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              font-family: 'monospace', sans-serif;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color: #000;
+            }
+            
+            html, body {
+              width: 65mm;
+              margin: 0;
+              padding: 0;
+            }
+            
+            body {
+              padding: 5mm 3mm;
+              font-size: 10pt;
+              line-height: 1.5;
+            }
+            
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+            .mb-1 { margin-bottom: 4px; }
+            .mb-2 { margin-bottom: 8px; }
+            .mt-2 { margin-top: 8px; }
+            
+            .border-t { 
+              border-top: 1px dashed #000;
+            }
+            
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .w-full { width: 100%; }
+            .receipt-print { 
+              width: 100%;
+            }
+            .item-row > div:last-child {
+              text-align: right;
+            }
+            .summary-row > div:first-child {
+              text-align: right;
+              padding-right: 1em;
+            }
+            .summary-row > div:last-child {
+              text-align: right;
+            }
+            .total-row {
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    iframe.onload = () => {
+      setTimeout(() => {
+        contentWindow.focus();
+        contentWindow.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 100);
+      }, 250);
+    };
   };
   
   const handleShare = async () => {
@@ -165,9 +266,9 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
   const { order, items } = orderDetail;
   
   return (
-    <div className="min-h-screen bg-slate-50">
+    <>
       {/* Screen view */}
-      <div className="print:hidden">
+      <div className="min-h-screen bg-slate-50 print:hidden">
         <div className="max-w-3xl mx-auto bg-white min-h-screen border-x border-slate-200">
           {/* Header */}
           <div className="bg-white border-b border-slate-200 p-6 md:p-8 text-center">
@@ -308,85 +409,151 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-      
+
       {/* Print view */}
-      <div className="hidden print:block receipt-print">
-        <div className="text-center mb-2" style={{ fontSize: '10px' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '12px' }}>Martabak & Terang Bulan Tip Top</div>
-          <div>Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan</div>
-          <div>Telp: 082319777005</div>
-          <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
-          <div>{formatReceiptDateTime(order.order_time)}</div>
-          <div>No: {order.order_no}</div>
-          <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
-        </div>
-        
-        <div style={{ fontSize: '10px' }}>
-          {items.map((item: any, index: number) => {
-            const itemTotal = item.qty * item.unit_price;
-            
-            return (
-              <div key={item.id} style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div className="hidden receipt-print-container">
+        <div className="receipt-print leading-snug">
+          <div className="text-center mb-1">
+            <div className="font-bold text-base mb-0.5">Martabak & Terang Bulan Tip Top</div>
+            <div className="text-xs">Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan</div>
+            <div className="text-xs">Telp: 082319777005</div>
+            <div className="border-t"></div>
+            <div className="text-xs">{formatReceiptDateTime(order.order_time)}</div>
+            <div className="text-xs">No: {order.order_no}</div>
+            <div className="border-t"></div>
+          </div>
+          
+          <div>
+            {items.map((item: any) => (
+              <div key={item.id} className="mb-1">
+                <div className="flex justify-between">
                   <span>{item.qty}x {item.products.name}</span>
-                  <span>{formatCurrency(itemTotal)}</span>
+                  <span>{formatCurrency(item.qty * item.unit_price)}</span>
                 </div>
                 {item.variant_name && (
-                  <div style={{ marginLeft: '12px', fontSize: '9px' }}>
-                    ({item.variant_name})
-                  </div>
+                  <div className="ml-2 text-xs">({item.variant_name})</div>
                 )}
-                <div style={{ marginLeft: '12px', fontSize: '9px' }}>
-                  @{formatCurrency(item.unit_price)}
-                </div>
+                <div className="ml-2 text-xs">@{formatCurrency(item.unit_price)}</div>
                 {item.notes && (
-                  <div style={{ marginLeft: '12px', fontSize: '9px' }}>
-                    Catatan: {item.notes}
-                  </div>
+                  <div className="ml-2 text-xs">Catatan: {item.notes}</div>
                 )}
               </div>
-            );
-          })}
-        </div>
-        
-        <div style={{ borderTop: '1px dashed #000', margin: '4px 0', paddingTop: '4px', fontSize: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Subtotal</span>
-            <span>{formatCurrency(order.subtotal)}</span>
+            ))}
           </div>
-          {order.discount_amount > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Diskon</span>
-              <span>-{formatCurrency(order.discount_amount)}</span>
+          
+          <div className="border-t border-dashed border-black my-1 pt-1">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatCurrency(order.subtotal)}</span>
             </div>
-          )}
-          {order.extra_fee > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Biaya Tambahan</span>
-              <span>{formatCurrency(order.extra_fee)}</span>
+            {order.discount_amount > 0 && (
+              <div className="flex justify-between">
+                <span>Diskon</span>
+                <span>-{formatCurrency(order.discount_amount)}</span>
+              </div>
+            )}
+            {order.extra_fee > 0 && (
+              <div className="flex justify-between">
+                <span>Biaya Tambahan</span>
+                <span>{formatCurrency(order.extra_fee)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold border-solid pt-0.5 mt-0.5">
+              <span>TOTAL</span>
+              <span>{formatCurrency(order.total)}</span>
             </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '11px', borderTop: '1px solid #000', paddingTop: '2px', marginTop: '2px' }}>
-            <span>TOTAL</span>
-            <span>{formatCurrency(order.total)}</span>
+          </div>
+          
+          <div className="border-t pt-1">
+            <div className="flex justify-between">
+              <span>Bayar</span>
+              <span>{formatCurrency(order.paid_amount)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Kembalian</span>
+              <span>{formatCurrency(order.change_amount)}</span>
+            </div>
+          </div>
+          
+          <div className="text-center mt-2 text-xs border-t pt-1">
+            Terima kasih! 🙏
           </div>
         </div>
-        
-        <div style={{ borderTop: '1px dashed #000', margin: '4px 0', paddingTop: '4px', fontSize: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Bayar</span>
-            <span>{formatCurrency(order.paid_amount)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Kembalian</span>
-            <span>{formatCurrency(order.change_amount)}</span>
-          </div>
+      </div>
+    </>
+  );
+}
+
+const ReceiptPrintContent = ({ orderDetail }: { orderDetail: OrderDetail }) => {
+  const { order, items } = orderDetail;
+  const total = items.reduce((sum, item) => sum + item.qty * item.unit_price, 0);
+
+  return (
+    <div className="receipt-print">
+      <div className="text-center">
+        <div className="font-bold">Martabak & Terang Bulan Tip Top</div>
+        <div className="text-xs leading-snug">
+          Jl. Seroja, Karang Anyar, Kec. Tarakan Barat, Kota Tarakan
         </div>
-        
-        <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '10px', borderTop: '1px dashed #000', paddingTop: '4px' }}>
-          Terima kasih! 🙏
+        <div className="text-xs leading-snug">Telp: 082319777005</div>
+      </div>
+
+      <div className="my-1 border-t"></div>
+
+      <div className="text-sm">
+        <div>{formatReceiptDateTime(order.order_time)}</div>
+        <div>No: {order.order_no}</div>
+      </div>
+
+      <div className="my-1 border-t"></div>
+
+      {items.map((item: any) => {
+        const itemTotal = item.qty * item.unit_price;
+        return (
+          <div key={item.id} className="text-sm">
+            <div className="flex justify-between">
+              <span>{item.qty}x {item.products.name}</span>
+              <span>{formatCurrency(itemTotal)}</span>
+            </div>
+            {item.variant_name && (
+              <div className="ml-2 text-xs">({item.variant_name})</div>
+            )}
+            <div className="ml-2 text-xs">@{formatCurrency(item.unit_price)}</div>
+          </div>
+        );
+      })}
+
+      <div className="my-1 border-t"></div>
+
+      <div className="text-sm">
+        <div className="flex justify-between">
+          <span>Subtotal</span>
+          <span className="font-bold">{formatCurrency(total)}</span>
         </div>
+        <div className="flex justify-between font-bold text-base pt-0-5">
+          <span>TOTAL</span>
+          <span>{formatCurrency(total)}</span>
+        </div>
+      </div>
+
+      <div className="my-1 border-t"></div>
+
+      <div className="text-sm">
+        <div className="flex justify-between">
+          <span>Bayar</span>
+          <span>{formatCurrency(order.payment_amount)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Kembalian</span>
+          <span>{formatCurrency(order.payment_amount - total)}</span>
+        </div>
+      </div>
+
+      <div className="my-1 border-t"></div>
+
+      <div className="text-center mt-2 text-sm">
+        Terima kasih! 🙏
       </div>
     </div>
   );
-}
+};
